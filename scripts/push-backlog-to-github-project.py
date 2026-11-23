@@ -31,7 +31,14 @@ LABELS = {"epic": "5319e7", "constraint:driving-2024": "d93f0b", "release:R1": "
 
 
 def gh(*args, parse=True):
-    out = subprocess.run(["gh", *args], check=True, capture_output=True, text=True).stdout
+    for attempt in range(4):  # retry transient network errors only
+        proc = subprocess.run(["gh", *args], capture_output=True, text=True)
+        if proc.returncode == 0 or not any(w in proc.stderr for w in ("connection reset", "timeout", "EOF", "502", "503")):
+            break
+        time.sleep(3 * (attempt + 1))
+    out = proc.stdout
+    if proc.returncode != 0 and not (args[:2] == ("api", "graphql") and out.strip().startswith("{")):
+        raise RuntimeError(f"gh {' '.join(args[:3])}: {proc.stderr.strip()}")
     return json.loads(out) if parse and out.strip() else out
 
 
@@ -50,7 +57,7 @@ def gql_link(query, **variables):
     try:
         gql(query, **variables)
     except RuntimeError as err:
-        if "already" not in str(err).lower() and "duplicate" not in str(err).lower():
+        if not any(w in str(err).lower() for w in ("already", "duplicate", "taken")):
             raise
 
 
