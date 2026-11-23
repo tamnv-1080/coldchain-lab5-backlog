@@ -1,0 +1,2039 @@
+# Nguồn duy nhất của backlog LAB-5. Script scripts/push-backlog-to-github-project.py đọc file này để tạo issue.
+# Quy ước:
+#   key      mã cục bộ ổn định (E09-04b) — ghi vào tiêu đề issue để tra ngược
+#   role     người phụ trách giả định (field "Phụ trách (giả định)" trên Project)
+#   spec     tài liệu LAB-4 (đường dẫn trong bộ specs/ đã nộp ở LAB-4)
+#   scope    việc phải làm · ac: điều kiện nghiệm thu · deps: key phải xong trước
+#   subs     sub-issue; khi có subs, issue cha chỉ là vỏ gom (SWP cha = tổng con)
+#   constraint: driving-2024  → hạng mục chịu ràng buộc giờ lái xe tải từ 2024
+meta:
+  product: Product B — hệ thống nghiệp vụ chuỗi kho lạnh thực phẩm
+  source: Bộ thiết kế LAB-4 (specs/, nộp 2026-11-21)
+  roles:
+  - BE-1
+  - BE-2
+  - FE-1
+  - FE-2
+  - QA-1
+  - BrSE
+epics:
+- key: E01
+  title: Nền tảng, hạ tầng và khoá đường ghi
+  release: R1
+  goal: Môi trường chạy thật ở Tokyo, CI, và đóng lỗ hổng "ai đăng nhập cũng ghi thẳng vào DB" của prototype trước khi làm nghiệp vụ.
+  spec:
+  - ADR-001
+  - ADR-002
+  - ADR-003
+  - ADR-005
+  - YCL_OVERVIEW_DB §5 DIV-02/03/17/24/28
+  - error-codes.md
+  issues:
+  - key: E01-01
+    title: '[INFRA] Dựng 4 môi trường Supabase (ap-northeast-1) + Vercel Functions hnd1'
+    role: BE-2
+    spec:
+    - ADR-001 §7
+    scope:
+    - 4 project Supabase dev/test/UAT/prod ở Tokyo, gắn với 4 môi trường Vercel
+    - Biến môi trường tách theo môi trường, secret không nằm trong repo
+    ac:
+    - Deploy được bản build hiện tại lên cả 4 môi trường, Functions chạy ở hnd1
+    - Chỉ người có quyền mới xem được secret prod
+  - key: E01-02
+    title: '[INFRA] CI: lint, typecheck, test, chạy migration theo môi trường; bật PITR/backup prod'
+    role: BE-2
+    spec:
+    - ADR-001 §7
+    deps:
+    - E01-01
+    scope:
+    - Pipeline PR chạy lint + typecheck + unit test + test RPC
+    - Migration tự chạy ở dev/test; UAT/prod cần duyệt tay
+    - Bật PITR/backup cho prod
+    ac:
+    - PR có test đỏ không merge được
+    - Có bằng chứng restore thử một bản backup ở môi trường test
+  - key: E01-03
+    title: '[BE] Rule lint chặn import @supabase/* trong src/app/(app)/** (quy ước BFF)'
+    role: BE-1
+    spec:
+    - ADR-002 §7
+    scope:
+    - Thêm rule ESLint, sửa các chỗ vi phạm hiện có
+    ac:
+    - CI báo lỗi khi component import trực tiếp @supabase/*
+  - key: E01-04
+    title: '[BE] service-client chỉ chạy ở server; route ghi gọi RPC bằng service role và truyền p_actor'
+    role: BE-1
+    spec:
+    - ADR-003 §7
+    - api-list.md §2 quy ước chung
+    scope:
+    - lib/supabase/service-client.ts (server-only)
+    - Sửa mọi route ghi hiện có sang gọi RPC qua service-client, p_actor lấy từ phiên
+    ac:
+    - Không route ghi nào nhận kết quả tính sẵn từ client
+    - Import service-client từ code client gây lỗi build
+  - key: E01-05
+    title: '[DB] Migration khoá đường ghi: revoke DML của authenticated, grant execute RPC chỉ service_role'
+    role: BE-2
+    spec:
+    - ADR-003 §7
+    - YCL_OVERVIEW_DB §5 DIV-02
+    deps:
+    - E01-04
+    scope:
+    - Revoke INSERT/UPDATE/DELETE với role authenticated trên các bảng đã có RPC ghi; bảng orders revoke cùng E06-01 (prototype còn insert thẳng)
+    - Mọi RPC chỉ grant EXECUTE cho service_role
+    ac:
+    - JWT user thường gọi PATCH qua PostgREST hoặc gọi thẳng rpc nhận 401/403
+  - key: E01-06
+    title: '[DB] Bất biến bảng sự kiện: trigger append-only, cột người thao tác NOT NULL + FK RESTRICT, profiles.deactivated_at'
+    role: BE-2
+    spec:
+    - ADR-005 §7
+    - YCL_OVERVIEW_DB §5 DIV-03
+    - DIV-24
+    deps:
+    - E01-05
+    scope:
+    - Trigger chặn UPDATE/DELETE trên các bảng sự kiện theo danh sách quy ước 2 mục 4 của YCL_OVERVIEW_DB (kể cả service_role)
+    - Cột *_by NOT NULL, FK profiles ON DELETE RESTRICT; vô hiệu hoá user bằng deactivated_at
+    ac:
+    - UPDATE một dòng sự kiện bằng service_role bị lỗi
+    - Xoá user có dấu vết bị chặn
+  - key: E01-07
+    title: '[DB] Bổ sung CHECK còn thiếu và index phụ theo FK/đường tra chính'
+    role: BE-2
+    spec:
+    - YCL_OVERVIEW_DB §5 DIV-17
+    - DIV-28
+    scope:
+    - CHECK cho delivery_term, expiry_type, band, qty, zone↔band, min_c <= max_c…
+    - Index theo FK và đường tra phân bổ/truy xuất/cách ly/hàng đợi alarm
+    ac:
+    - Migration chạy được trên DB có dữ liệu seed; EXPLAIN các truy vấn chính dùng index
+  - key: E01-08
+    title: '[BE] Thư viện lỗi chung: định dạng {error, code, fieldErrors} và bảng mã lỗi'
+    role: BE-1
+    spec:
+    - error-codes.md
+    - api-list.md §2
+    scope:
+    - Kiểu lỗi dùng chung, map lỗi RPC (raise code) sang HTTP status + thông báo tiếng Nhật
+    ac:
+    - Mọi route trả lỗi đúng định dạng; mã lỗi không có trong bảng bị test bắt
+  - key: E01-09
+    title: '[QA] Khung test: Vitest cho engine + test RPC trên Supabase local + bộ seed test'
+    role: QA-1
+    spec:
+    - ADR-004 (engine thuần)
+    - PREMISE.md (LAB-5) H2
+    scope:
+    - Vitest cho src/lib/domain/*
+    - Test RPC chạy trên Supabase CLI local (Postgres thật, có RLS) trong CI
+    - Seed dữ liệu test giả lập, dựng lại được
+    ac:
+    - CI chạy được cả 2 loại test; một test RPC mẫu đỏ/xanh đúng
+  - key: E01-10
+    title: '[QA] Test bảo mật đường ghi: gọi thẳng PostgREST/RPC bằng JWT user thường'
+    role: QA-1
+    spec:
+    - ADR-003 §7
+    deps:
+    - E01-05
+    - E01-09
+    scope:
+    - Bộ test tự động gọi PATCH /rest/v1/lots, rpc/publish_route, rpc/decide_lot_status… bằng JWT user thường
+    ac:
+    - Mọi lời gọi nhận 401/403; test chạy trong CI
+  - key: E01-11
+    title: '[BrSE] Gửi lại QA#12 (hạ tầng Supabase/Vercel Tokyo) kèm estimate hạ tầng tính lại'
+    role: BrSE
+    labels:
+    - clarification
+    spec:
+    - ADR-001 §7
+    - PREMISE D01
+    scope:
+    - Bảng so sánh chi phí/vận hành, câu hỏi DPA và vị trí log
+    ac:
+    - Khách chấp nhận hoặc trả lời; kết quả ghi QA表
+  - key: E01-12
+    title: '[INFRA] Giám sát uptime và cảnh báo vận hành (NFR-AVL-01), log lỗi tập trung'
+    role: BE-2
+    spec:
+    - YCL_SYSTEM_DESIGN §8
+    deps:
+    - E01-01
+    scope:
+    - Health check endpoint, uptime monitor, kênh cảnh báo cho job lỗi (dùng chung với E09-14)
+    ac:
+    - Tắt thử một môi trường → có cảnh báo trong 5 phút
+- key: E02
+  title: Phân quyền 12 role và đăng nhập
+  release: R1
+  goal: RBAC 12 role, người lập ≠ người duyệt, áp ở 3 lớp (màn, API, DB); SSO + MFA cho role đặc quyền.
+  spec:
+  - ADR-009
+  - role-permission-matrix.md
+  - YCL_OVERVIEW_DB §5 DIV-01
+  - A001_SPEC
+  - A002_SPEC
+  issues:
+  - key: E02-01
+    title: '[DB] roles, user_roles, has_role(); bỏ profiles.role; seed 12 role'
+    role: BE-2
+    spec:
+    - ADR-009 §7
+    - AUTH_MASTER_DB
+    - DIV-01
+    deps:
+    - E01-05
+    scope:
+    - Bảng roles (is_privileged), user_roles có lịch sử cấp/thu hồi, UNIQUE đang hiệu lực
+    - Hàm has_role(p_actor, role_code) dùng trong RPC; trigger tạo profile không cấp quyền mặc định
+    - Map user demo của prototype sang role mới (DIV-12)
+    ac:
+    - User mới không có quyền gì; has_role đúng với user nhiều role
+  - key: E02-02
+    title: '[DB] RLS SELECT theo role cho các bảng nghiệp vụ'
+    role: BE-2
+    spec:
+    - role-permission-matrix.md
+    - ADR-009
+    deps:
+    - E02-01
+    subs:
+    - key: E02-02a
+      title: '[DB] RLS SELECT nhóm nhập hàng, chất lượng, nhiệt độ'
+      role: BE-2
+      spec:
+      - role-permission-matrix.md
+      - ADR-009
+      scope:
+      - Policy SELECT theo ma trận cho nhóm nhập hàng, chất lượng, nhiệt độ (lots, inbound_inspections, quality_events, lot_status_requests, temperature_*, alarms, devices)
+      ac:
+      - 'Test với user mẫu của các role liên quan: chỉ đọc được bảng/dòng theo ma trận'
+    - key: E02-02b
+      title: '[DB] RLS SELECT nhóm đơn hàng, xuất hàng, giao hàng'
+      role: BE-2
+      spec:
+      - role-permission-matrix.md
+      - ADR-009
+      scope:
+      - Policy SELECT theo ma trận cho nhóm đơn hàng, xuất hàng, giao hàng (orders, allocations, shipments, pods, delivery_history, expiry_hard_stop_events)
+      ac:
+      - 'Test với user mẫu của các role liên quan: chỉ đọc được bảng/dòng theo ma trận'
+    - key: E02-02c
+      title: '[DB] RLS SELECT nhóm tuyến và giờ làm'
+      role: BE-2
+      spec:
+      - role-permission-matrix.md
+      - ADR-009
+      scope:
+      - Policy SELECT theo ma trận cho nhóm tuyến và giờ làm (routes, route_segments, route_versions, driver_* ; R06 chỉ đọc dữ liệu của mình)
+      ac:
+      - 'Test với user mẫu của các role liên quan: chỉ đọc được bảng/dòng theo ma trận'
+    - key: E02-02d
+      title: '[DB] RLS SELECT nhóm master và phân quyền'
+      role: BE-2
+      spec:
+      - role-permission-matrix.md
+      - ADR-009
+      scope:
+      - Policy SELECT theo ma trận cho nhóm master và phân quyền (skus, customers, suppliers, agreements, locations, policies, roles, user_roles, profiles)
+      ac:
+      - 'Test với user mẫu của các role liên quan: chỉ đọc được bảng/dòng theo ma trận'
+  - key: E02-03
+    title: '[BE] Guard API theo mã quyền P-xx; /api/me trả roles[]'
+    role: BE-1
+    spec:
+    - role-permission-matrix.md
+    - api-list.md API-AUTH-003
+    deps:
+    - E02-01
+    scope:
+    - Hàm requirePermission(P-xx) dùng ở mọi route ghi; /api/me trả danh sách role
+    ac:
+    - Thiếu quyền → 403 FORBIDDEN_ROLE; test các P-xx có API (P-01…P-21 trừ P-18, P-19)
+  - key: E02-04
+    title: '[FE] Ẩn/hiện thao tác và menu theo ma trận quyền'
+    role: FE-1
+    spec:
+    - role-permission-matrix.md
+    deps:
+    - E02-03
+    scope:
+    - Hook usePermission, component <Can>, menu theo role
+    ac:
+    - Nút không có quyền không hiển thị; server vẫn chặn khi gọi thẳng
+  - key: E02-05
+    title: '[BE] SSO doanh nghiệp qua Supabase Auth + /auth/callback'
+    role: BE-1
+    spec:
+    - ADR-009
+    - A001_SPEC §5
+    - api-list.md API-AUTH-004
+    - PREMISE D11
+    deps:
+    - E02-10
+    scope:
+    - Cấu hình SSO theo IdP đã làm rõ, callback đổi code lấy phiên, map tài khoản IdP → profile (không gán role)
+    - User bị vô hiệu ở IdP → đặt profiles.deactivated_at (DIV-24)
+    ac:
+    - Đăng nhập SSO thành công ở UAT; email/password chỉ bật ở dev/test
+  - key: E02-06
+    title: '[BE] MFA lúc đăng nhập cho role đặc quyền R04/R09/R10/R11 (IdP/Supabase), không tạo phiên khi thiếu MFA'
+    role: BE-1
+    spec:
+    - A001_SPEC §3, scenario MFA
+    - ADR-009
+    - PREMISE D11
+    deps:
+    - E02-01
+    scope:
+    - Cấu hình yêu cầu MFA ở IdP/Supabase Auth; server kiểm AAL của phiên user có role đặc quyền, thiếu thì đăng xuất kèm thông báo
+    ac:
+    - User R04 không qua MFA không vào được hệ thống; user chỉ có R01 không bị yêu cầu MFA
+  - key: E02-07
+    title: '[FE] A001 ログイン (SSO; email/password cho dev/test)'
+    role: FE-1
+    spec:
+    - A001_SPEC
+    - api-list.md API-AUTH-001/002 (giữ như prototype)
+    deps:
+    - E02-05
+    scope:
+    - Màn đăng nhập theo wireframe, thông báo lỗi tiếng Nhật
+    ac:
+    - Đúng wireframe A001; lỗi hiển thị đúng mã
+  - key: E02-08
+    title: '[BE] API-DSH-001: số đếm hàng đợi công việc theo role'
+    role: BE-1
+    spec:
+    - A002_SPEC §4.3
+    - api-list.md API-DSH-001
+    deps:
+    - E02-03
+    scope:
+    - 'Đếm theo role: lô chờ duyệt, alarm mở, đơn business-review, giờ làm chờ duyệt, tuyến cần 再計画'
+    ac:
+    - Số đếm khớp dữ liệu seed cho từng role
+  - key: E02-09
+    title: '[FE] A002 ホーム: hàng đợi theo role'
+    role: FE-1
+    spec:
+    - A002_SPEC
+    deps:
+    - E02-08
+    scope:
+    - Thẻ hàng đợi theo role, link tới màn xử lý
+    ac:
+    - Đúng wireframe A002 với 3 role mẫu
+  - key: E02-10
+    title: '[BrSE] Làm rõ IdP doanh nghiệp của khách (loại, giao thức, cấu hình MFA, quy trình vô hiệu hoá user)'
+    role: BrSE
+    spec:
+    - PREMISE D11
+    - YCL_SYSTEM_DESIGN §11
+    - QA#24
+    labels:
+    - clarification
+    scope:
+    - 'Câu hỏi gửi khách: loại IdP, OIDC hay SAML, MFA cấu hình ở IdP, cách báo user nghỉ việc; role không suy từ IdP (ADR-009)'
+    ac:
+    - Có câu trả lời được ghi vào QA表 hoặc giả định được PL chốt
+  - key: E02-11
+    title: '[QA] Test RBAC và người lập ≠ người duyệt'
+    role: QA-1
+    spec:
+    - ADR-009 §7
+    - role-permission-matrix.md
+    deps:
+    - E02-02
+    - E02-03
+    scope:
+    - R01 release lô → 403; tự duyệt yêu cầu của mình → bị từ chối; ma trận 12 role × P-xx
+    ac:
+    - Bộ test tự động chạy trong CI
+  - key: E02-12
+    title: '[BE] Script gán/thu hồi role cho vận hành R1, ghi người gán (P-19)'
+    role: BE-2
+    spec:
+    - role-permission-matrix.md P-19
+    - ADR-009
+    deps:
+    - E02-01
+    scope:
+    - Lệnh gán/thu hồi chạy bởi R11, ghi granted_by/revoked_by + thời điểm vào user_roles; không cho tự gán cho mình
+    ac:
+    - Có log mỗi lần gán/thu hồi; R11 tự gán role cho chính mình bị từ chối
+- key: E03
+  title: Master và chính sách có version
+  release: R1
+  goal: Master có vòng đời và hiệu lực; mọi giao dịch dùng version hiệu lực tại thời điểm phát sinh. Release 1 chỉ xem master, đổi bằng migration có review.
+  spec:
+  - ADR-006
+  - AUTH_MASTER_DB
+  - M001_SPEC
+  - DIV-06/07/15/19/29
+  issues:
+  - key: E03-01
+    title: '[DB] Cột vòng đời + effective_to cho master; skus.regulated_identifier; agreements UNIQUE theo effective_from'
+    role: BE-2
+    spec:
+    - ADR-006 §7
+    - DIV-06
+    - DIV-29
+    scope:
+    - lifecycle_status, proposed_by, approved_by, approved_at, effective_to cho skus, agreements, temperature_policies, driving_rule_versions, locations
+    - agreements UNIQUE (customer_id, sku_id, effective_from), chặn 2 dòng ACTIVE chồng hiệu lực
+    ac:
+    - Migration giữ dữ liệu seed; chèn hợp đồng chồng hiệu lực bị từ chối
+  - key: E03-02
+    title: '[BE] Hàm chọn version hiệu lực tại thời điểm (chính sách nhiệt, hợp đồng, logger) dùng chung'
+    role: BE-1
+    spec:
+    - ADR-006
+    - DIV-15
+    deps:
+    - E03-01
+    scope:
+    - effective_from <= t < coalesce(effective_to, ∞), chỉ ACTIVE; không tìm thấy → lỗi POLICY_NOT_FOUND (fail closed)
+    ac:
+    - Unit test biên ngày JST, trùng ngày đổi version, không có version
+  - key: E03-03
+    title: '[DB] Master devices (logger) + seed; temperature_readings.policy_band + FK ghép'
+    role: BE-2
+    spec:
+    - ADR-008 §7
+    - TEMPERATURE_DB
+    - DIV-07
+    - DIV-19
+    deps:
+    - E03-01
+    scope:
+    - Bảng devices (zone, vị trí, hiệu lực, vòng đời); policy_band + FK (band, version); backfill
+    ac:
+    - Không lưu được lần đo có logger không có trong master
+  - key: E03-04
+    title: '[BE] API-MST-001: thêm quy tắc giờ lái, thiết bị, trạng thái vòng đời'
+    role: BE-1
+    spec:
+    - M001_SPEC §4.3
+    - api-list.md API-MST-001
+    deps:
+    - E03-01
+    - E03-03
+    scope:
+    - Trả thêm driving_rule_versions, devices, lifecycle; lọc theo quyền xem
+    ac:
+    - Trường trả về khớp M001_SPEC §4.3
+  - key: E03-05
+    title: '[FE] M001 マスタ (chỉ xem; gộp M002, M007)'
+    role: FE-2
+    spec:
+    - M001_SPEC
+    deps:
+    - E03-04
+    scope:
+    - Tab theo loại master, hiển thị version/hiệu lực/trạng thái
+    ac:
+    - Đúng wireframe M001; không có nút sửa
+- key: E04
+  title: Nhập hàng và chất lượng lô
+  release: R1
+  goal: R002 tạo lô bất biến và tự cách ly; Q001 cách ly/giữ 1 bước, release/huỷ 2 người; I001 tra tồn.
+  spec:
+  - inbound-quality/README
+  - R002_SPEC
+  - Q001_SPEC
+  - I001_SPEC
+  - INBOUND_RECEIVE_TECH
+  - LOT_STATUS_DECISION_TECH
+  - API-INB-002
+  - API-QLT-001
+  - API-QLT-003
+  issues:
+  - key: E04-01
+    title: '[BE] Engine kiểm dữ liệu nhập R002 (消費/賞味, trường bắt buộc gạo/bò)'
+    role: BE-1
+    spec:
+    - INBOUND_RECEIVE_TECH §4.2
+    scope:
+    - Hàm thuần kiểm nhập liệu theo bảng ở §4.2, trả fieldErrors
+    ac:
+    - Unit test mọi nhánh §4.2
+  - key: E04-02
+    title: '[BE] Engine quyết định theo master: dải nhiệt, chính sách theo ngày fail-closed → ACCEPTED/QUARANTINED/REJECTED'
+    role: BE-1
+    spec:
+    - INBOUND_RECEIVE_TECH §4.3
+    - DIV-25
+    - PREMISE D06
+    deps:
+    - E03-02
+    - E04-01
+    scope:
+    - Bảng quyết định §4.3; không có chính sách → POLICY_NOT_FOUND, không rơi vào ACCEPTED
+    ac:
+    - Unit test biên nhiệt (5.0 trong, 5.1 alarm) và ca không có chính sách
+  - key: E04-03
+    title: '[DB] RPC receive_inbound: idempotency request_id, p_actor, kiểm lại hard stop, tự cách ly'
+    role: BE-2
+    spec:
+    - INBOUND_RECEIVE_TECH §4.4–4.6
+    - API-INB-002
+    deps:
+    - E01-05
+    - E02-01
+    scope:
+    - Khoá + idempotent theo request_id; loại hạn khớp master; dải nhiệt vị trí = dải SKU; ghi lô + quality_events
+    ac:
+    - Gửi lặp cùng request_id chỉ tạo 1 lô; test RPC các nhánh lỗi
+  - key: E04-04
+    title: '[BE] API-INB-002 / API-INB-001: kiểm quyền P-01, gọi RPC qua service role'
+    role: BE-1
+    spec:
+    - API-INB-002_API
+    - api-list.md
+    deps:
+    - E04-02
+    - E04-03
+    - E02-03
+    scope:
+    - Route POST/GET theo BM-52, map lỗi
+    ac:
+    - Đúng hợp đồng BM-52 (status, body, mã lỗi)
+  - key: E04-05
+    title: '[FE] R002 入荷検品 (handy): bố cục, lỗi, đã cách ly'
+    role: FE-2
+    spec:
+    - R002_SPEC
+    - wireframe R002/R002_error/R002_quarantined
+    deps:
+    - E04-04
+    scope:
+    - Màn handy, ô nhập nhận máy quét kiểu bàn phím, 3 trạng thái theo wireframe
+    ac:
+    - Đúng wireframe 3 trạng thái; quét mã vạch nhập đúng ô
+  - key: E04-06
+    title: '[DB] change_lot_status 1 bước cho QUARANTINE/HOLD'
+    role: BE-2
+    spec:
+    - LOT_STATUS_DECISION_TECH §2.1
+    - §4.2
+    deps:
+    - E02-01
+    scope:
+    - Chỉ QUARANTINE/HOLD; luồng trạng thái hợp lệ theo §2.1; bắt buộc lý do
+    ac:
+    - Test RPC chuyển trạng thái sai bị từ chối
+  - key: E04-07
+    title: '[DB] lot_status_requests + request_lot_status (RELEASE/SCRAP, vị trí đích ngoài khu cách ly)'
+    role: BE-2
+    spec:
+    - LOT_STATUS_DECISION_TECH §4.3
+    - DIV-09
+    - PREMISE D22
+    deps:
+    - E04-06
+    scope:
+    - Bảng yêu cầu; RELEASE bắt buộc target_location_id không phải khu cách ly, cùng dải nhiệt
+    ac:
+    - Yêu cầu RELEASE thiếu vị trí đích hoặc vị trí cách ly bị từ chối
+  - key: E04-08
+    title: '[DB] decide_lot_status: người duyệt ≠ người đề nghị, chặn ALARM_NOT_CLOSED'
+    role: BE-2
+    spec:
+    - LOT_STATUS_DECISION_TECH §4.4
+    - PREMISE D21
+    deps:
+    - E04-07
+    scope:
+    - Duyệt/từ chối; lô vẫn QUARANTINE/HOLD lúc duyệt; alarm liên quan chưa CLOSED → chặn
+    ac:
+    - Tự duyệt bị từ chối; còn alarm mở thì release bị chặn
+  - key: E04-09
+    title: '[BE] API-QLT-001 / 002 / 003 (đổi trạng thái, danh sách yêu cầu, quyết định)'
+    role: BE-1
+    spec:
+    - API-QLT-001_API
+    - API-QLT-003_API
+    - api-list.md API-QLT-002
+    deps:
+    - E04-08
+    - E02-03
+    scope:
+    - 3 route theo BM-52, quyền P-02/P-03/P-04
+    ac:
+    - Đúng hợp đồng BM-52
+  - key: E04-10
+    title: '[FE] Q001 隔離・品質判定: bố cục, chờ duyệt, bị hạn chế'
+    role: FE-1
+    spec:
+    - Q001_SPEC
+    - wireframe Q001/Q001_pending/Q001_restricted
+    deps:
+    - E04-09
+    scope:
+    - Danh sách lô, đề nghị release/huỷ, hàng chờ duyệt, khoá nút khi còn alarm mở
+    ac:
+    - Đúng wireframe 3 trạng thái
+  - key: E04-11
+    title: '[FE+BE] I001 在庫検索 + API-INV-001 trả open_alarms[]'
+    role: FE-2
+    spec:
+    - I001_SPEC
+    - api-list.md API-INV-001
+    deps:
+    - E02-03
+    scope:
+    - Màn tra tồn rút gọn; API thêm open_alarms {id, status} mỗi lô
+    ac:
+    - Đúng wireframe I001; lọc theo SKU/trạng thái/vị trí
+  - key: E04-12
+    title: '[QA] Test ma trận ca biên trạng thái lô và nhập hàng'
+    role: QA-1
+    spec:
+    - LOT_STATUS_DECISION_TECH §4.5
+    - INBOUND_RECEIVE_TECH
+    deps:
+    - E04-04
+    - E04-09
+    scope:
+    - Tự động hoá ma trận §4.5 + nhánh cách ly khi nhập
+    ac:
+    - Mọi ca trong §4.5 có test, chạy trong CI
+- key: E05
+  title: Nhiệt độ, alarm và SLA 15 phút
+  release: R1
+  goal: Import CSV logger an toàn (không làm tròn, chống trùng), alarm theo đợt, cách ly đúng phạm vi, phát hiện khoảng trống, review alarm chỉ 品質管理.
+  spec:
+  - temperature-monitoring/README
+  - Q004_SPEC
+  - TEMPERATURE_IMPORT_TECH
+  - ADR-008
+  - API-TMP-002/003/004
+  - DIV-08/15/16/20/30/32/35/37/39
+  issues:
+  - key: E05-01
+    title: '[BE] Parser CSV logger: 1 chữ số thập phân không làm tròn, băm byte gốc, lỗi theo dòng'
+    role: BE-1
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.2
+    - DIV-32
+    - DIV-37
+    scope:
+    - Giá trị > 1 chữ số thập phân → VALIDATION_FAILED; SHA-256 trên ArrayBuffer; error_rows {line, code, message}
+    ac:
+    - Test 5.04 bị từ chối (không thành 5.0); hash khớp file gốc
+  - key: E05-02
+    title: '[BE] Gán zone từ master logger, chọn chính sách tại read_at, đánh giá biên'
+    role: BE-1
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.3
+    - §4.7
+    - DIV-07
+    - DIV-15
+    - PREMISE D06/D21
+    deps:
+    - E03-02
+    - E03-03
+    - E05-01
+    scope:
+    - Zone suy từ logger hiệu lực tại read_at; CSV lệch zone → dòng lỗi; biên tính là trong ngưỡng
+    ac:
+    - Bảng biên §4.7 pass; file cũ import sau ngày đổi ngưỡng dùng version cũ
+  - key: E05-03
+    title: '[BE] groupExcursions: một alarm cho một đợt vượt ngưỡng, kéo dài qua lần import sau'
+    role: BE-1
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.4
+    - DIV-35
+    deps:
+    - E05-02
+    scope:
+    - Gộp lần đo ALARM liên tiếp cùng logger + cùng version; nối đợt với alarm đang mở
+    ac:
+    - Ca biên B1–B11 pass
+  - key: E05-04
+    title: '[BE] Phạm vi ảnh hưởng của đợt: lô theo received_at ≤ last_read_at, shipment đã xuất'
+    role: BE-1
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.5
+    - DIV-16
+    deps:
+    - E05-03
+    scope:
+    - Lô AVAILABLE ở zone nhận trước last_read_at → QUARANTINE; shipment đã xuất trong đợt → danh sách cần xem xét
+    ac:
+    - Lô nhận sau lần đo không bị cách ly nhầm; lô đã xuất không bị bỏ sót
+  - key: E05-13
+    title: '[DB] Migration alarm theo đợt + affected_shipments + temperature_gaps + deviation_id'
+    role: BE-2
+    spec:
+    - DIV-35
+    - DIV-16
+    - DIV-39
+    - DIV-08
+    - TEMPERATURE_DB
+    deps:
+    - E03-03
+    scope:
+    - 'alarms: device_id, first_read_at, last_read_at, peak_value_c, reading_count, bỏ reading_id; temperature_readings.alarm_id; alarms.affected_shipments; bảng temperature_gaps; alarms.deviation_id (chưa FK)'
+    ac:
+    - Migration chạy trên dữ liệu seed, chuyển alarm cũ sang mô hình đợt
+  - key: E05-05
+    title: '[DB] RPC record_temperature_import trong 1 transaction; UNIQUE (device_id, read_at)'
+    role: BE-2
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.6
+    - DIV-20
+    - DIV-08
+    deps:
+    - E03-03
+    - E01-05
+    - E05-13
+    scope:
+    - Trùng SHA-256 từ chối; dòng trùng (device_id, read_at) → DUPLICATE_READING; ghi readings, alarms, cách ly, detected_at
+    ac:
+    - Import lại cùng file không sinh alarm đôi; 2 file chồng khoảng không tạo số đo trùng
+  - key: E05-06
+    title: '[BE] detectGaps: khoảng trống > 15 phút giữa 2 lần đo → 記録欠落'
+    role: BE-1
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.9
+    - DIV-39
+    deps:
+    - E05-02
+    - E05-13
+    scope:
+    - Phát hiện theo logger, ghi temperature_gaps OPEN, không tự đóng
+    ac:
+    - 'Biên theo giây: đúng 15:00 không tạo, 15:01 trở lên tạo; ca G1–G9 của TEMPERATURE_IMPORT_TECH §4.9'
+    - Khoảng trống nằm giữa 2 file vẫn phát hiện
+  - key: E05-07
+    title: '[DB+BE] close_temperature_gap + API-TMP-004 (chỉ R04, bắt buộc lý do)'
+    role: BE-2
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.10
+    - API-TMP-004_API
+    deps:
+    - E05-06
+    - E02-03
+    scope:
+    - OPEN → CLOSED một lần, quyền P-21
+    ac:
+    - Đúng hợp đồng BM-52; role khác R04 → 403
+  - key: E05-08
+    title: '[DB+BE] review_alarm chỉ đi tiến OPEN→ACKNOWLEDGED→INVESTIGATED→CLOSED + API-TMP-003'
+    role: BE-2
+    spec:
+    - TEMPERATURE_IMPORT_TECH §4.8
+    - API-TMP-003_API
+    - DIV-30
+    - DIV-22
+    deps:
+    - E05-05
+    - E02-03
+    scope:
+    - Chỉ R04 (P-06), CLOSED bắt buộc lý do, first_reviewed_at ghi 1 lần, không ghi đè rationale
+    ac:
+    - Lùi trạng thái bị từ chối; đóng không lý do bị từ chối
+  - key: E05-09
+    title: '[BE] API-TMP-002 (multipart) + API-TMP-001 (lô đã xuất cần xem xét, 2 mốc SLA)'
+    role: BE-1
+    spec:
+    - API-TMP-002_API
+    - Q004_SPEC §4.3
+    - PREMISE D05
+    deps:
+    - E05-04
+    - E05-05
+    - E05-06
+    scope:
+    - Upload byte gốc; GET trả thời điểm đo + thời điểm phát hiện, hạn SLA 15 phút
+    ac:
+    - Đúng hợp đồng BM-52; KPI hiển thị cả 2 mốc
+  - key: E05-10
+    title: '[FE] Q004 温度記録取込・照会: import, lỗi theo dòng, khoảng trống'
+    role: FE-2
+    spec:
+    - Q004_SPEC
+    - wireframe Q004/Q004_errors
+    deps:
+    - E05-09
+    scope:
+    - Upload CSV, bảng lỗi theo dòng, danh sách 記録欠落 và nút đóng (R04)
+    ac:
+    - Đúng wireframe
+  - key: E05-11
+    title: '[FE] Q002 アラームレビューキュー: hàng đợi, đồng hồ SLA, lô đã xuất cần xem xét'
+    role: FE-2
+    spec:
+    - Q004_SPEC (phần Q002)
+    deps:
+    - E05-08
+    - E05-09
+    scope:
+    - Hàng đợi alarm theo đợt, đếm ngược SLA từ detected_at, thao tác review theo trạng thái
+    ac:
+    - Đúng wireframe; alarm quá SLA nổi lên đầu
+  - key: E05-12
+    title: '[QA] Test tích hợp import nhiệt độ'
+    role: QA-1
+    spec:
+    - TEMPERATURE_IMPORT_TECH
+    deps:
+    - E05-09
+    scope:
+    - Trùng file, chồng khoảng, đợt kéo dài 2 file, cách ly đúng phạm vi, gap
+    ac:
+    - Kịch bản chạy tự động trong CI
+- key: E06
+  title: Đơn hàng và phân bổ lô (出荷可否判定エンジン)
+  release: R1
+  goal: Engine phân bổ quyết định từng lô theo các quy tắc chặn cứng, phân bổ một phần, business-review; RPC giữ bất biến.
+  spec:
+  - order-allocation/README
+  - O001_SPEC
+  - O002_SPEC
+  - ALLOCATION_ENGINE_TECH
+  - API-ORD-002/004/005
+  - DIV-10/31/33/34
+  issues:
+  - key: E06-01
+    title: '[DB+BE] create_order RPC + order_ref chống trùng + API-ORD-002'
+    role: BE-2
+    spec:
+    - API-ORD-002_API
+    - DIV-33
+    deps:
+    - E01-05
+    - E02-03
+    scope:
+    - Phải có hợp đồng khách × SKU còn hiệu lực; UNIQUE (customer_id, order_ref) khi khác NULL
+    - Revoke DML trực tiếp trên orders sau khi route chuyển sang RPC
+    ac:
+    - Đơn trùng tham chiếu bị từ chối với mã lỗi xử lý được
+  - key: E06-02
+    title: '[FE] O001 受注 (rút gọn) + API-ORD-001'
+    role: FE-1
+    spec:
+    - O001_SPEC
+    deps:
+    - E06-01
+    scope:
+    - Danh sách + tạo đơn
+    ac:
+    - Đúng wireframe O001
+  - key: E06-03
+    title: '[BE] Engine phân bổ — quyết định từng lô'
+    role: BE-1
+    spec:
+    - ALLOCATION_ENGINE_TECH §4.3
+    subs:
+    - key: E06-03a
+      title: '[BE] Quy tắc 消費期限: chặn cứng, ưu tiên trước mọi quy tắc'
+      spec:
+      - ALLOCATION_ENGINE_TECH §4.3
+      - PREMISE D08
+      scope:
+      - Loại lô tới 消費期限 so với ngày giao; lý do vào evidence.excluded
+      ac:
+      - Ca biên đúng ngày hạn và hạn - 1
+    - key: E06-03b
+      title: '[BE] Quy tắc dải nhiệt, vị trí cách ly và trạng thái lô'
+      spec:
+      - ALLOCATION_ENGINE_TECH §4.3
+      scope:
+      - Loại lô khác dải nhiệt; loại lô ở vị trí is_quarantine (nhánh 2'); chỉ lô AVAILABLE (bước 3)
+      ac:
+      - Ca B-19, B-19b, B-33
+    - key: E06-03c
+      title: '[BE] Quy tắc hạn giao theo hợp đồng (1/3, 1/2, làm tròn xuống); không có quy tắc → BUSINESS_REVIEW'
+      spec:
+      - ALLOCATION_ENGINE_TECH §4.3
+      - PREMISE D08
+      deps:
+      - E03-02
+      scope:
+      - Tính trên khoảng sản xuất → hạn; chọn hợp đồng hiệu lực tại requested_date
+      ac:
+      - Ca biên làm tròn; hợp đồng chưa đặt quy tắc → BUSINESS_REVIEW
+    - key: E06-03d
+      title: '[BE] Quy tắc 日付逆転 theo lịch sử giao khách × SKU'
+      spec:
+      - ALLOCATION_ENGINE_TECH §4.3
+      - PREMISE D07/D18
+      scope:
+      - Mốc gồm cả phân bổ/xuất còn mở; cùng hạn với lần trước thì cho phép
+      - Loại dòng bị trả lại toàn bộ hoặc đã đảo; lịch sử thiếu hạn → BUSINESS_REVIEW; không so với hôm nay
+      ac:
+      - Mọi ca 日付逆転 trong bảng ca biên pass
+    - key: E06-03e
+      title: '[BE] FEFO xếp hạng lô + ghi evidence kèm snapshot hợp đồng'
+      spec:
+      - ALLOCATION_ENGINE_TECH §4.3
+      - ADR-006 §7
+      scope:
+      - Xếp hạn sớm trước; evidence gồm lý do loại từng lô và hợp đồng đã dùng
+      ac:
+      - Evidence đủ để giải thích mọi lô bị loại
+  - key: E06-04
+    title: '[BE] Engine kết quả cấp đơn: phân bổ một phần + số thiếu'
+    role: BE-1
+    spec:
+    - ALLOCATION_ENGINE_TECH §4.4
+    - PREMISE D09
+    - ADR-004 §7
+    deps:
+    - E06-03
+    scope:
+    - Đủ lô → ALLOCATED; thiếu → PARTIALLY_ALLOCATED + shortage_qty; không đề xuất hàng thay thế
+    ac:
+    - Unit test ca thiếu một phần và không có lô hợp lệ
+  - key: E06-05
+    title: '[DB] RPC allocate_order: khoá dòng, đúng SKU, lô AVAILABLE, không vượt tồn, ghi shortage_qty'
+    role: BE-2
+    spec:
+    - ALLOCATION_ENGINE_TECH §4.6
+    - DIV-31
+    - DIV-10
+    deps:
+    - E01-05
+    - E02-01
+    scope:
+    - orders.status thêm BUSINESS_REVIEW/PARTIALLY_ALLOCATED; kiểm lại điều kiện chặn cứng trong transaction
+    ac:
+    - 2 lời gọi đồng thời không phân bổ vượt tồn; lô sai SKU bị từ chối
+  - key: E06-06
+    title: '[DB] expiry_hard_stop_events: ghi mỗi lần chặn 消費期限 ở ALLOCATION/DISPATCH/DELIVERY'
+    role: BE-2
+    spec:
+    - DIV-34
+    - O002_SPEC §6.4
+    scope:
+    - Bảng chỉ ghi thêm; RPC ghi sự kiện kể cả khi phân bổ thất bại
+    ac:
+    - Mỗi lần chặn có đúng 1 sự kiện
+    deps:
+    - E06-05
+  - key: E06-13
+    title: '[DB] delivery_history: cột đảo (reversal_of, reason, approved_by), delivery_term NOT NULL + backfill, expiry NULL chỉ cho MIGRATION'
+    role: BE-2
+    spec:
+    - DIV-04 (phần R1)
+    - DIV-27
+    - OUTBOUND_DELIVERY_DB §4.3
+    deps:
+    - E01-06
+    scope:
+    - CHECK source thêm REVERSAL (qty < 0, approved_by ≠ recorded_by); RPC đảo dòng để R1.1 (E12-03)
+    ac:
+    - Truy vấn mốc 日付逆転 loại dòng đã đảo toàn bộ (ca B-15, B-16)
+  - key: E06-07
+    title: '[BE] API-ORD-003 (hợp đồng hiệu lực tại requested_date) + API-ORD-004 cổng xác nhận'
+    role: BE-1
+    spec:
+    - API-ORD-004_API
+    - ALLOCATION_ENGINE_TECH §4.5
+    - §4.7
+    deps:
+    - E06-04
+    - E06-05
+    - E06-13
+    scope:
+    - GET đề xuất + phần thiếu; POST bắt xác nhận khi phân bổ một phần
+    ac:
+    - Đúng hợp đồng BM-52
+  - key: E06-08
+    title: '[DB+BE] resolve_business_review + API-ORD-005 (người xử lý ≠ người tạo đơn)'
+    role: BE-2
+    spec:
+    - API-ORD-005_API
+    - DIV-10
+    deps:
+    - E06-05
+    scope:
+    - Đơn đang BUSINESS_REVIEW; ghi review_window_rule, review_basis, người/thời điểm quyết định
+    ac:
+    - Người tạo đơn tự xử lý bị từ chối
+  - key: E06-09
+    title: '[FE] O002 引当判定: bố cục chính, cảnh báo 日付逆転, hộp thoại phân bổ một phần, sau phân bổ'
+    role: FE-1
+    spec:
+    - O002_SPEC
+    - wireframe O002/O002_partial/O002_allocated
+    deps:
+    - E06-07
+    scope:
+    - Bảng lô đề xuất + lý do loại, xác nhận phân bổ một phần, trạng thái 一部欠品
+    ac:
+    - Đúng wireframe 3 trạng thái
+  - key: E06-10
+    title: '[FE] O002 trạng thái business-review và lỗi không có hợp đồng'
+    role: FE-1
+    spec:
+    - O002_SPEC
+    - wireframe O002_business-review/O002_no-contract
+    deps:
+    - E06-08
+    - E06-09
+    scope:
+    - Form quyết định của R08, thông báo chặn khi không có hợp đồng
+    ac:
+    - Đúng wireframe 2 trạng thái
+  - key: E06-11
+    title: '[BE] Script nạp lịch sử giao từ hệ thống cũ (delivery_history, source=MIGRATION)'
+    role: BE-2
+    spec:
+    - OUTBOUND_DELIVERY_DB §4.3
+    - DIV-27
+    - PREMISE.md (LAB-5) A3
+    scope:
+    - Nạp CSV theo định dạng giả định; hạn không rõ → NULL (đơn liên quan vào BUSINESS_REVIEW); báo cáo dòng lỗi
+    ac:
+    - Nạp lại cùng file không tạo trùng; số dòng nạp + lỗi khớp file
+    deps:
+    - E06-13
+  - key: E06-12
+    title: '[QA] Test 34 ca biên của engine phân bổ (B-01…B-33, B-19b) + ca RPC'
+    role: QA-1
+    spec:
+    - ALLOCATION_ENGINE_TECH (bảng ca biên)
+    deps:
+    - E06-07
+    scope:
+    - Tự động hoá 34 ca ở mức engine + các ca bất biến RPC ở ALLOCATION_ENGINE_TECH §5
+    ac:
+    - 34/34 ca có test, chạy trong CI
+- key: E07
+  title: Xuất hàng và POD (luồng online)
+  release: R1
+  goal: Lấy hàng, xếp xe, kiểm trước khi xuất không bao giờ xuất lô bị chặn; POD online đủ bằng chứng theo hợp đồng.
+  spec:
+  - outbound-delivery/README
+  - O006_SPEC
+  - D002_SPEC
+  - POD_COMPLETE_TECH
+  - API-OUT-002
+  - API-DLV-002
+  - DIV-05/18/21/22/26/27/36
+  issues:
+  - key: E07-01
+    title: '[DB] Vòng đời đơn đủ (VALIDATED, PICKED, LOADED) + shipments.vehicle_id FK'
+    role: BE-2
+    spec:
+    - DIV-22
+    - DIV-18
+    scope:
+    - Mở rộng CHECK orders.status theo thiết kế (gồm VALIDATED, PICKED, LOADED); FK shipments.vehicle_id
+    - 'Chuyển trạng thái R1 thật sự dùng: CREATED → ALLOCATED/PARTIALLY_ALLOCATED/BUSINESS_REVIEW → DISPATCHED → DELIVERED; PICKED/LOADED chưa có RPC ghi (chờ T-02)'
+    ac:
+    - Chuyển trạng thái ngoài danh sách R1 bị từ chối; dispatch ALLOCATED → DISPATCHED chạy được
+  - key: E07-02
+    title: '[DB] dispatch_order: khoá đơn, UNIQUE (order_id, lot_id), lô còn AVAILABLE, band xe, 消費期限 lúc xuất'
+    role: BE-2
+    spec:
+    - API-OUT-002_API
+    - api-list.md §3
+    - DIV-21
+    - DIV-36
+    - DIV-18
+    deps:
+    - E07-01
+    - E06-06
+    scope:
+    - Nhận ALLOCATED/PARTIALLY_ALLOCATED; lô quét = lô phân bổ; lô bị cách ly sau phân bổ → chặn
+    ac:
+    - Gọi 2 lần chỉ tạo 1 bộ shipments; lô cách ly sau phân bổ không xuất được
+  - key: E07-03
+    title: '[BE] API-OUT-002 (kiểm lại 日付逆転 ở server) + API-OUT-001 (tuyến, chính sách hiệu lực, view R06)'
+    role: BE-1
+    spec:
+    - API-OUT-002_API
+    - O006_SPEC §4.3
+    deps:
+    - E07-02
+    - E06-03
+    scope:
+    - POST dispatch theo BM-52; GET danh sách xuất gồm đơn PARTIALLY_ALLOCATED
+    ac:
+    - Đúng hợp đồng BM-52; DATE_REVERSAL_BLOCKED khi mốc đổi sau phân bổ
+  - key: E07-04
+    title: '[FE] O005/O006 ピッキング・積込・出荷前チェック (handy): đạt, bị chặn, mất mạng'
+    role: FE-2
+    spec:
+    - O006_SPEC
+    - wireframe O006/O006_blocked
+    deps:
+    - E07-03
+    scope:
+    - Quét lô, kiểm từng điều kiện, thông báo chặn (lô, band, nhiệt, 消費期限), báo mất mạng
+    ac:
+    - Đúng wireframe 2 trạng thái
+  - key: E07-05
+    title: '[FE] O006 màn tài xế: lô trên xe của mình'
+    role: FE-2
+    spec:
+    - O006_SPEC
+    - wireframe O006_driver-view
+    deps:
+    - E07-03
+    scope:
+    - View chỉ đọc theo R06
+    ac:
+    - Đúng wireframe; tài xế khác không thấy
+  - key: E07-06
+    title: '[DB] pods: trường trách nhiệm + thời điểm thiết bị (damage_noted, custody_checkpoint, geo_ref, captured_at…)'
+    role: BE-2
+    spec:
+    - DIV-05
+    - DIV-26
+    - OUTBOUND_DELIVERY_DB
+    scope:
+    - Thêm cột; captured_at = giờ thiết bị, received_at, capture_device, client_pod_id UNIQUE (NULL tới khi có spec offline)
+    ac:
+    - Migration chạy được; delivery_history.completed_at lấy captured_at
+  - key: E07-07
+    title: '[BE] pod-evidence: ma trận bằng chứng delivery_term × hợp đồng'
+    role: BE-1
+    spec:
+    - POD_COMPLETE_TECH §4.3
+    - PREMISE D10
+    scope:
+    - 'Hàm thuần: 軒先渡し cần chữ ký + ảnh, 車上渡し cần chữ ký; khoá geo/unload_evidence theo hợp đồng'
+    ac:
+    - Unit test đủ ô ma trận
+  - key: E07-08
+    title: '[DB] complete_delivery: shipment DISPATCHED của tài xế, 消費期限 lúc giao, ghi delivery_history'
+    role: BE-2
+    spec:
+    - POD_COMPLETE_TECH §4.4
+    - PREMISE D19
+    - DIV-27
+    deps:
+    - E07-06
+    - E06-06
+    - E06-13
+    scope:
+    - Chặn 消費期限 ở stage DELIVERY; delivery_history có delivery_term; đóng đơn khi giao hết
+    ac:
+    - Lô quá 消費期限 lúc giao bị chặn và có sự kiện chặn
+  - key: E07-09
+    title: '[BE] API-DLV-002 + API-DLV-001 (R06 chỉ thấy chuyến của mình)'
+    role: BE-1
+    spec:
+    - API-DLV-002_API
+    - D002_SPEC §4.3
+    deps:
+    - E07-07
+    - E07-08
+    scope:
+    - POST POD theo BM-52; GET danh sách giao theo tài xế
+    ac:
+    - Đúng hợp đồng BM-52; tài xế khác → 403
+  - key: E07-10
+    title: '[FE] D002 配送完了・POD (online): 軒先渡し, 車上渡し, lỗi/mất mạng'
+    role: FE-1
+    spec:
+    - D002_SPEC
+    - wireframe D002/D002_on-truck/D002_error
+    deps:
+    - E07-09
+    scope:
+    - Chữ ký, ảnh (tên file + hash như R1), trường trách nhiệm; báo lỗi thiếu bằng chứng
+    ac:
+    - Đúng wireframe 3 trạng thái
+  - key: E07-11
+    title: '[QA] Test luồng xuất và giao'
+    role: QA-1
+    spec:
+    - O006_SPEC
+    - D002_SPEC
+    - POD_COMPLETE_TECH
+    deps:
+    - E07-03
+    - E07-09
+    scope:
+    - Xuất 2 lần, lô bị cách ly sau phân bổ, 消費期限 lúc xuất/giao, thiếu bằng chứng POD
+    ac:
+    - Kịch bản tự động trong CI
+  - key: E07-12
+    title: '[BrSE] Chốt có ghi trạng thái PICKED/LOADED ở R1 hay không (O006 T-02)'
+    role: BrSE
+    labels:
+    - clarification
+    spec:
+    - O006_SPEC §6.3 T-02
+    - DIV-22
+    scope:
+    - Câu hỏi cho khách/PL; nếu cần thì tạo issue RPC ghi PICKED/LOADED
+    ac:
+    - Có quyết định ghi vào QA表
+- key: E08
+  title: Lập tuyến (soạn, huỷ, màn hình)
+  release: R1
+  goal: Người lập tuyến gán đơn vào tuyến/điểm dừng bằng tay (không VRP). Phần kiểm giờ lái và công bố nằm ở E09.
+  spec:
+  - route-planning/README
+  - S001_SPEC
+  - ROUTE_PLANNING_DB
+  - API-RTE-005/006
+  - DIV-13
+  - PREMISE D02
+  issues:
+  - key: E08-01
+    title: '[DB] routes vòng đời đủ + cancel_reason; route_segments order_id, minutes_source, reference_minutes, override_reason'
+    role: BE-2
+    spec:
+    - ROUTE_PLANNING_DB
+    - DIV-13
+    - DIV-11 (phần đoạn tuyến)
+    scope:
+    - CHECK routes.status CREATED→CHECKED→PUBLISHED→IN_PROGRESS→COMPLETED/CANCELLED; cancel_reason, created_by, published_by, published_version, has_unpublished_changes, needs_replan, replan_reason
+    - 'route_segments: order_id, minutes_source, reference_minutes, override_reason, manual_approved_by, manual_approved_at'
+    ac:
+    - Migration giữ seed; trạng thái sai bị từ chối
+    constraint: driving-2024
+  - key: E08-02
+    title: '[DB+BE] Soạn tuyến: create_route + save_route_segments + API-RTE-004/005'
+    role: BE-2
+    spec:
+    - API-RTE-005_API (§6 tạo tuyến)
+    - api-list.md §3
+    deps:
+    - E08-01
+    - E02-03
+    subs:
+    - key: E08-02a
+      title: '[DB] RPC create_route + save_route_segments (quy tắc sửa theo trạng thái, p_expected_version)'
+      role: BE-2
+      spec:
+      - API-RTE-005_API §4, §6
+      - api-list.md §3
+      scope:
+      - Tài xế/xe/giờ xuất phát chỉ sửa khi CREATED/CHECKED; đoạn sửa được khi PUBLISHED (giữ PUBLISHED, bật has_unpublished_changes)
+      - Lưu check_result do server truyền vào, không tự tính quy tắc
+      ac:
+      - 'Test RPC: sửa tài xế khi PUBLISHED bị từ chối; STALE_VERSION khi version lệch'
+    - key: E08-02b
+      title: '[BE] API-RTE-004/005: kiểm đầu vào, dải nhiệt xe, gọi bản đồ cho đoạn DRIVE (bước 1–7, 9)'
+      role: BE-1
+      spec:
+      - API-RTE-005_API §5 bước 1–7, 9
+      deps:
+      - E08-02a
+      - E08-03
+      scope:
+      - Kiểm đơn gán, VEHICLE_BAND_MISMATCH, gọi adapter bản đồ (MAP_API / MANUAL / 503 MAP_UNAVAILABLE)
+      - Bước 8 (kiểm 拘束時間 khi lưu) làm ở E09-23; trước khi có E09-23 tuyến lưu ở trạng thái CREATED
+      ac:
+      - Đúng hợp đồng BM-52 trừ phần kết quả kiểm
+  - key: E08-03
+    title: '[BE] Adapter bản đồ: lấy phút tham chiếu cho đoạn DRIVE, lỗi bản đồ → cho nhập tay'
+    role: BE-1
+    spec:
+    - S001_SPEC J-14
+    - PREMISE D16
+    - PREMISE.md (LAB-5) A1
+    deps:
+    - E08-09
+    scope:
+    - Interface MapEstimator + 1 bản cài đặt theo dịch vụ của khách; timeout/lỗi → server xác nhận lỗi, cho MANUAL
+    ac:
+    - Lỗi bản đồ mới mở được nhập tay; reference_minutes lưu khi có
+    constraint: driving-2024
+  - key: E08-04
+    title: '[BE] API-RTE-001 (đơn chưa gán + lý do) và API-RTE-002 (chi tiết tuyến + kết quả kiểm)'
+    role: BE-1
+    spec:
+    - S001_SPEC §4.3
+    - api-list.md
+    deps:
+    - E08-01
+    scope:
+    - Danh sách tuyến theo ngày, đơn chưa gán kèm lý do (FR-SCH-01)
+    ac:
+    - Trường trả về khớp S001_SPEC §4.3
+  - key: E08-05
+    title: '[DB+BE] cancel_route + API-RTE-006 (bắt buộc lý do, không huỷ tuyến đang chạy)'
+    role: BE-2
+    spec:
+    - API-RTE-006_API
+    deps:
+    - E08-01
+    - E09-12
+    scope:
+    - Huỷ có lý do; không gỡ phân bổ lô; dựng lại PLANNED của ngày
+    ac:
+    - Đúng hợp đồng BM-52
+    constraint: driving-2024
+  - key: E08-06
+    title: '[FE] S001 ルート計画: danh sách tuyến, đơn chưa gán, soạn đoạn, timeline'
+    role: FE-1
+    spec:
+    - S001_SPEC
+    - wireframe S001
+    deps:
+    - E08-02
+    - E08-04
+    scope:
+    - Gán đơn vào tuyến, sửa đoạn (lái/nghỉ/荷役/chờ), timeline trong ngày
+    ac:
+    - Đúng wireframe S001 bố cục chính
+  - key: E08-07
+    title: '[FE] S002 ルート公開・版履歴'
+    role: FE-1
+    spec:
+    - S001_SPEC (phần S002)
+    deps:
+    - E08-06
+    - E09-06
+    scope:
+    - Nút công bố, lý do công bố lại, lịch sử version, huỷ tuyến
+    ac:
+    - Đúng wireframe S002
+    constraint: driving-2024
+  - key: E08-08
+    title: '[BrSE] Làm rõ dịch vụ bản đồ khách đang dùng (API, quota, khoá, điều khoản)'
+    role: BrSE
+    spec:
+    - PREMISE.md (LAB-5) A1
+    - YCL_SYSTEM_DESIGN §5
+    labels:
+    - clarification
+    scope:
+    - Câu hỏi gửi khách; nếu chưa có trả lời trước Sprint 3 thì PL quyết định dịch vụ thay thế
+    ac:
+    - Có đủ thông tin để cài đặt adapter
+    constraint: driving-2024
+  - key: E08-09
+    title: '[BE] Spike: thử API bản đồ đã chọn (độ trễ, giới hạn gọi, định dạng)'
+    role: BE-1
+    spec:
+    - PREMISE.md (LAB-5) A1
+    deps:
+    - E08-08
+    labels:
+    - spike
+    scope:
+    - Gọi thử ở môi trường dev, đo độ trễ và lỗi; time-box 1 ngày
+    ac:
+    - Ghi kết quả vào issue, chốt thiết kế adapter
+    constraint: driving-2024
+- key: E09
+  title: '★ Giờ lái xe tải từ 2024: kiểm 拘束時間 và giờ làm thực tế'
+  release: R1
+  constraint: driving-2024
+  goal: Không công bố được tuyến vi phạm giới hạn giờ lái/拘束 từ 2024 (trong ngày + nhiều ngày), dựa trên giờ làm thực tế tài xế ghi; không có nút bỏ qua.
+  spec:
+  - ADR-007
+  - DRIVING_TIME_CHECK_TECH
+  - WORK_EVENT_RECORD_TECH
+  - S001_SPEC
+  - D001_SPEC
+  - API-RTE-003/007
+  - API-DRV-002/004
+  - PREMISE D03/D04/D14–D17/D20
+  - DIV-11/23/38
+  issues:
+  - key: E09-01
+    title: '[DB] driving_rule_versions: khoá quy tắc mới + seed version 2024 (migration có review); chọn version'
+    role: BE-2
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.1
+    - ROUTE_PLANNING_DB
+    - ADR-006
+    deps:
+    - E03-01
+    scope:
+    - Khoá rules cho mọi ngưỡng (liên tục, nghỉ, 拘束 ngày, TB 2 ngày, TB 2 tuần, nghỉ giữa ngày, tháng, năm, 超勤 năm, ngưỡng ghi trễ)
+    - Thiếu khoá bắt buộc → RULE_VERSION_MISSING (không lấy mặc định)
+    ac:
+    - Seed đúng ngưỡng 2024; version thiếu khoá bị coi là không có quy tắc
+  - key: E09-02
+    title: '[BE] RouteCheckService đọc dữ liệu + dựng DayFigure (bảng quyết định 12 dòng)'
+    role: BE-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.2
+    - §4.3
+    deps:
+    - E09-01
+    - E09-09
+    scope:
+    - Nguồn thực tế / kế hoạch / số dư đầu kỳ; ngày làm theo START_WORK (qua nửa đêm vẫn là ngày bắt đầu); REST vs MISSING
+    ac:
+    - Unit test đủ 12 dòng bảng quyết định
+  - key: E09-03
+    title: '[BE] Engine tầng trong ngày (checkSameDay)'
+    role: BE-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.4
+    subs:
+    - key: E09-03a
+      title: '[BE] Ghép nhiều tuyến/ngày, ROUTE_OVERLAP, timeline qua 24:00'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.4 dòng 1–2
+      - PREMISE D14
+      scope:
+      - Nối tuyến theo giờ xuất phát, khoảng giữa tuyến = GAP, chồng giờ = vi phạm
+      ac:
+      - Ca biên SD-13, SD-14, SD-16
+      deps:
+      - E09-02
+    - key: E09-03b
+      title: '[BE] 連続運転 4 giờ: tín dụng nghỉ theo khối ≥ 10 phút đủ 30 phút, limitAt'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.4 dòng 3–5
+      - PREMISE D03
+      scope:
+      - Đếm liên tục, reset khi đủ tín dụng; GAP giữa tuyến tính như nghỉ; 荷役/chờ không reset; chỉ chỉ điểm, không tự chèn nghỉ
+      ac:
+      - Ca biên SD-1 … SD-7, SD-5b
+      deps:
+      - E09-02
+    - key: E09-03c
+      title: '[BE] 拘束/ngày: > 13 giờ cảnh báo, > 15 giờ vi phạm; lái/ngày > 9 giờ chỉ là info'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.4 dòng 6–7
+      scope:
+      - 拘束 = kết thúc muộn nhất − bắt đầu sớm nhất của mọi tuyến trong ngày
+      ac:
+      - Ca biên SD-9, SD-10, SD-15
+      deps:
+      - E09-02
+    - key: E09-03d
+      title: '[BE] Giờ làm và 超勤 ngày; ước tính > 24 giờ; giờ phục vụ 05:00–23:00'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.4 dòng 8–10
+      scope:
+      - workingMin, overtimeMin (giả định > 8 giờ/ngày); tuyến > 1440 phút vi phạm; 荷役 ngoài khung → cảnh báo
+      ac:
+      - Ca biên SD-8, SD-11, SD-12, SD-17
+      deps:
+      - E09-02
+  - key: E09-04
+    title: '[BE] Engine tầng nhiều ngày (checkMultiDay)'
+    role: BE-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.5
+    - ADR-007
+    - PREMISE D04/D15
+    subs:
+    - key: E09-04a
+      title: '[BE] TWO_DAY_AVG_DRIVE: trung bình lái 2 ngày (cặp trước và cặp sau)'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5 quy tắc 1
+      scope:
+      - A = D-1 + D; B = D + D+1 chỉ khi D+1 đã công bố; > 1080 phút vi phạm
+      ac:
+      - Ca biên MD-1 … MD-4
+      deps:
+      - E09-02
+    - key: E09-04b
+      title: '[BE] TWO_WEEK_AVG_DRIVE: cửa sổ trượt 14 ngày'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5 quy tắc 2
+      scope:
+      - Mọi cửa sổ chứa D trong [D-13, D+13]; > 5280 phút vi phạm; khung = cửa sổ lớn nhất
+      ac:
+      - Ca biên MD-13, MD-14
+      deps:
+      - E09-02
+    - key: E09-04c
+      title: '[BE] REST_BETWEEN_DAYS: nghỉ giữa 2 ngày làm (trước và sau), 9h/11h'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5 quy tắc 3–4
+      scope:
+      - < 9h vi phạm, 9h–11h cảnh báo, ≥ 11h OK; lùi tối đa 14 ngày; khoảng giữa 2 tuyến cùng ngày không tính
+      ac:
+      - Ca biên MD-9 … MD-12
+      deps:
+      - E09-02
+    - key: E09-04d
+      title: '[BE] MONTHLY_RESTRAINT: tổng 拘束 tháng ≤ 284 giờ'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5 quy tắc 5
+      scope:
+      - Thực tế + kế hoạch + ngày đang kiểm; ngày thiếu → missing; số dư giữa tháng → BASELINE_GAP
+      ac:
+      - Ca biên MD-15, MD-19
+      deps:
+      - E09-02
+    - key: E09-04e
+      title: '[BE] YEARLY_RESTRAINT: tổng 拘束 năm ≤ 3.300 giờ (có số dư đầu kỳ)'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5 quy tắc 6
+      scope:
+      - Năm tài chính từ tháng 4 (giả định); không baseline mà dữ liệu bắt đầu giữa năm → BASELINE_MISSING
+      ac:
+      - Ca biên MD-16, MD-17, MD-18
+      deps:
+      - E09-02
+    - key: E09-04f
+      title: '[BE] YEARLY_OVERTIME: 超勤 năm ≤ 960 giờ (ước tính)'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5 quy tắc 7
+      - PREMISE D15
+      scope:
+      - overtimeMinYtd + Σ overtimeMin; > 57600 phút vi phạm; thiếu baseline → missing
+      ac:
+      - Ca biên MD-20, MD-21
+      deps:
+      - E09-02
+    - key: E09-04g
+      title: '[BE] Thiếu dữ liệu → missing[] (fail-closed), gộp theo ngày và quy tắc bị ảnh hưởng'
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.5
+      - ADR-007 mục 5
+      scope:
+      - NO_END_WORK, PENDING_APPROVAL, ROUTE_WITHOUT_ACTUALS; quota UNKNOWN
+      ac:
+      - Ca biên MD-5 … MD-8
+      deps:
+      - E09-02
+  - key: E09-05
+    title: '[BE] Ghép kết quả 2 tầng, thứ tự chặn công bố (vi phạm → phút tay chưa duyệt → thiếu dữ liệu), quota'
+    role: BE-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.6
+    deps:
+    - E09-03
+    - E09-04
+    scope:
+    - CheckResult đầy đủ; không nhận force/ignoreWarnings; quota dùng chung cho API-DRV-003
+    ac:
+    - Đúng thứ tự 409 ROUTE_VIOLATION / MANUAL_MINUTES_UNAPPROVED / ACTUALS_MISSING
+  - key: E09-23
+    title: '[BE] Chạy kiểm 2 tầng khi lưu đoạn tuyến (PUT segments bước 8), lưu check_result, CREATED/CHECKED'
+    role: BE-1
+    spec:
+    - API-RTE-005_API §5 bước 8
+    - DRIVING_TIME_CHECK_TECH §4.6, §4.8
+    deps:
+    - E09-05
+    - E08-02b
+    scope:
+    - Gọi engine chế độ PREVIEW với bản soạn, không chặn lưu; truyền p_check cho RPC; trả check trong response
+    ac:
+    - Lưu tuyến vi phạm vẫn thành công nhưng check có violations; tuyến sạch chuyển CHECKED
+  - key: E09-06
+    title: '[DB+BE] Công bố tuyến: gắn version quy tắc lúc công bố, đóng băng kết quả, route_versions + API-RTE-003'
+    role: BE-2
+    spec:
+    - API-RTE-003_API
+    - DRIVING_TIME_CHECK_TECH §4.8
+    - DIV-23
+    - DIV-38
+    - PREMISE D17
+    deps:
+    - E09-05
+    - E08-02a
+    subs:
+    - key: E09-06a
+      title: '[DB] Bảng route_versions chỉ ghi thêm (snapshot đoạn + check_result) + trigger bất biến'
+      role: BE-2
+      spec:
+      - DIV-23
+      - ROUTE_PLANNING_DB
+      scope:
+      - PK (route_id, version); publish_reason bắt buộc khi version > 1; chặn UPDATE/DELETE
+      ac:
+      - UPDATE snapshot bị lỗi kể cả service_role
+    - key: E09-06b
+      title: '[DB] RPC publish_route: khoá dòng, STALE_VERSION, không còn vi phạm/thiếu/MANUAL chưa duyệt, gắn version lúc công bố'
+      role: BE-2
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.8
+      - DIV-38
+      - PREMISE D17
+      deps:
+      - E09-06a
+      - E09-12
+      scope:
+      - rule_version = version hiệu lực lúc công bố; needs_replan = false; dựng lại driver_daily_actuals PLANNED; lý do khi công bố lại
+      ac:
+      - Tuyến công bố trước ngày đổi quy tắc giữ version cũ; p_check có violations bị RPC từ chối
+    - key: E09-06c
+      title: '[BE] API-RTE-003: chạy engine chế độ PUBLISH, thứ tự 409, gọi RPC'
+      role: BE-1
+      spec:
+      - API-RTE-003_API
+      - DRIVING_TIME_CHECK_TECH §4.6
+      deps:
+      - E09-06b
+      scope:
+      - 409 ROUTE_VIOLATION → MANUAL_MINUTES_UNAPPROVED → ACTUALS_MISSING; không nhận force/ignoreWarnings
+      ac:
+      - Đúng hợp đồng BM-52
+  - key: E09-07
+    title: '[DB+BE] Duyệt phút lái nhập tay: approve_manual_minutes + API-RTE-007 (R10 ≠ người lập)'
+    role: BE-2
+    spec:
+    - API-RTE-007_API
+    - S001_SPEC J-14
+    - PREMISE D16
+    deps:
+    - E08-02
+    - E08-03
+    scope:
+    - Đoạn MANUAL không có tham chiếu hoặc nhỏ hơn tham chiếu phải duyệt trước khi công bố
+    ac:
+    - Người lập tự duyệt bị từ chối; công bố bị chặn tới khi duyệt xong
+  - key: E09-08
+    title: '[BE] Kiểm lại tuyến tương lai sau khi có giờ thực tế (recheckFutureRoutes → recheck_future_routes)'
+    role: BE-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.7
+    deps:
+    - E09-05
+    - E09-12
+    scope:
+    - Chạy sau END_WORK và sau duyệt; chỉ bật cờ needs_replan, không sửa kết quả đã đóng băng; lỗi thì giữ giao dịch, job đêm chạy lại
+    ac:
+    - Giờ thực tế làm hỏng ngày sau → tuyến ngày sau bật 再計画
+  - key: E09-09
+    title: '[DB] Bảng giờ làm: driver_work_events, driver_daily_actuals, driver_period_baselines; drivers.user_id'
+    role: BE-2
+    spec:
+    - ROUTE_PLANNING_DB
+    - DIV-11
+    deps:
+    - E01-06
+    scope:
+    - Sự kiện chỉ ghi thêm (supersedes_id, VOID), approval_status; daily actuals dẫn xuất; baseline theo năm TC
+    ac:
+    - 'Migration + RLS: tài xế chỉ đọc dữ liệu của mình'
+  - key: E09-10
+    title: '[BE] Engine replay chuỗi sự kiện giờ làm (6 loại sự kiện)'
+    role: BE-1
+    spec:
+    - WORK_EVENT_RECORD_TECH §4.3
+    scope:
+    - Bảng trạng thái START_WORK / BREAK_START / BREAK_END / … / END_WORK; sự kiện sai thứ tự → lỗi
+    ac:
+    - Unit test đủ bảng trạng thái
+  - key: E09-11
+    title: '[DB+BE] Ghi giờ làm: record_work_event + API-DRV-002 + cổng trước START_WORK'
+    role: BE-2
+    spec:
+    - WORK_EVENT_RECORD_TECH §4.2
+    - §4.4
+    - DRIVING_TIME_CHECK_TECH §4.7-4
+    - API-DRV-002_API
+    deps:
+    - E09-09
+    - E09-10
+    subs:
+    - key: E09-11a
+      title: '[DB] RPC record_work_event (chỉ ghi thêm, supersedes_id, VOID) + start_route/complete_route nội bộ'
+      role: BE-2
+      spec:
+      - WORK_EVENT_RECORD_TECH §4.4
+      - api-list.md §3
+      scope:
+      - Ghi trễ phải có lý do; START_WORK/END_WORK gắn tuyến đổi trạng thái PUBLISHED→IN_PROGRESS→COMPLETED
+      ac:
+      - 'Test RPC: sửa dòng cũ bị chặn, chỉ thêm dòng mới trỏ supersedes_id'
+    - key: E09-11b
+      title: '[BE] API-DRV-002: validate, phân loại ghi trễ (> 15 phút), sửa/huỷ dòng'
+      role: BE-1
+      spec:
+      - WORK_EVENT_RECORD_TECH §4.2
+      - API-DRV-002_API
+      - D001_SPEC J-5
+      deps:
+      - E09-11a
+      scope:
+      - isLateEntry khi trễ > lateEntryThresholdMin hoặc có supersedesId; tài xế chỉ ghi cho chính mình
+      ac:
+      - 'Biên: trễ 15 phút 00 giây = ghi thường, 15 phút 01 giây = ghi trễ cần lý do'
+      - Đúng hợp đồng BM-52
+    - key: E09-11c
+      title: '[BE] Cổng trước START_WORK: kiểm lại tuyến của ngày làm, cảnh báo ROUTE_NEEDS_REPLAN'
+      role: BE-1
+      spec:
+      - DRIVING_TIME_CHECK_TECH §4.7-4
+      - WORK_EVENT_RECORD_TECH §4.4
+      deps:
+      - E09-11b
+      - E09-08
+      scope:
+      - START_WORK luôn được ghi; tuyến cần 再計画 không được bắt đầu; lỗi kiểm lại → không bắt đầu tuyến (fail-closed với tuyến)
+      ac:
+      - 'Kịch bản: giờ thực tế hôm trước làm tuyến hôm nay vi phạm → START_WORK ghi, tuyến không IN_PROGRESS'
+  - key: E09-12
+    title: '[DB] Hàm dựng lại driver_daily_actuals (gồm working_min, overtime_min)'
+    role: BE-2
+    spec:
+    - WORK_EVENT_RECORD_TECH §4.5
+    deps:
+    - E09-09
+    scope:
+    - Idempotent theo tài xế × khoảng ngày; dòng chờ duyệt không tính
+    ac:
+    - Dựng lại 2 lần cho cùng kết quả
+  - key: E09-13
+    title: '[DB+BE] approve_work_event + API-DRV-004: R10 duyệt/差戻し, người duyệt ≠ tài xế'
+    role: BE-2
+    spec:
+    - WORK_EVENT_RECORD_TECH §4.6
+    - API-DRV-004_API
+    - PREMISE D20
+    deps:
+    - E09-11
+    - E09-12
+    - E09-08
+    scope:
+    - APPROVE/REJECT; dựng lại ngày làm + ngày kế tiếp; sau commit chạy kiểm lại tuyến tương lai
+    ac:
+    - R05 duyệt → 403; tài xế tự duyệt bị từ chối
+  - key: E09-14
+    title: '[BE] Job EV6 03:00 JST: dựng lại ngày D-1 + kiểm lại tuyến, retry 3 lần, cảnh báo vận hành'
+    role: BE-2
+    spec:
+    - WORK_EVENT_RECORD_TECH §4.7
+    - PREMISE.md (LAB-5) H1
+    deps:
+    - E09-08
+    - E09-12
+    scope:
+    - Vercel Cron gọi route nội bộ có xác thực bằng secret; timeout 60 giây
+    ac:
+    - Chạy tay route job ở UAT cho kết quả đúng; lỗi 3 lần sinh cảnh báo
+  - key: E09-15
+    title: '[BE] API-DRV-001 (本日の運行) + API-DRV-003 (luỹ kế và hạn mức còn lại)'
+    role: BE-1
+    spec:
+    - D001_SPEC §4.3
+    - S001_SPEC §4.3
+    deps:
+    - E09-05
+    - E09-11
+    scope:
+    - Tài xế chỉ thấy của mình; quota tháng/năm/超勤/2 tuần/2 ngày/nghỉ
+    ac:
+    - Trường trả về khớp spec
+  - key: E09-16
+    title: '[FE] D001 màn tài xế (điện thoại): chuyến hôm nay, nút ghi sự kiện, ghi trễ có lý do'
+    role: FE-2
+    spec:
+    - D001_SPEC
+    - wireframe D001/D001_late-entry
+    deps:
+    - E09-15
+    scope:
+    - Nút lớn dùng được khi đeo găng; xác nhận trước khi ghi; trạng thái chờ duyệt
+    ac:
+    - Đúng wireframe 2 trạng thái
+  - key: E09-17
+    title: '[FE] D001 hàng chờ duyệt giờ làm của R10 (PC)'
+    role: FE-2
+    spec:
+    - D001_SPEC
+    - wireframe D001_approval
+    deps:
+    - E09-13
+    scope:
+    - Danh sách dòng chờ, duyệt/差戻し có lý do
+    ac:
+    - Đúng wireframe
+  - key: E09-18
+    title: '[FE] S001 panel kiểm 拘束: vi phạm/cảnh báo 2 tầng, limitAt, hạn mức, phút nhập tay chờ duyệt'
+    role: FE-1
+    spec:
+    - S001_SPEC
+    - wireframe S001_violation
+    deps:
+    - E09-05
+    - E08-06
+    scope:
+    - Hiển thị đoạn vi phạm + khung giờ, điểm chạm 4 giờ, quota, danh sách MANUAL chờ R10; không có nút bỏ qua
+    ac:
+    - Đúng wireframe trạng thái vi phạm
+  - key: E09-19
+    title: '[BE] Script nạp dữ liệu đầu kỳ giờ lái: số dư năm + giờ làm từng ngày của 13 ngày trước go-live'
+    role: BE-2
+    spec:
+    - DRIVING_TIME_CHECK_TECH §4.2-8, §4.3
+    - PREMISE D04
+    - PREMISE.md (LAB-5) S3, S6, A2
+    deps:
+    - E09-09
+    scope:
+    - driver_period_baselines (拘束/超勤 luỹ kế năm, as_of = ngày cuối tháng trước go-live)
+    - 'driver_daily_actuals ACTUAL cho 13 ngày trước go-live (nguồn: bảng chấm công khách cung cấp) để TB 2 ngày, TB 2 tuần, nghỉ giữa ngày không bị tính thiếu'
+    ac:
+    - Nạp lại không trùng; thiếu baseline → BASELINE_MISSING; go-live ngày 1 không sinh BASELINE_GAP
+  - key: E09-20
+    title: '[QA] Test tích hợp kịch bản giờ lái 2024'
+    role: QA-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH
+    - WORK_EVENT_RECORD_TECH
+    deps:
+    - E09-06
+    - E09-13
+    scope:
+    - 午前便 + 午後便 cộng dồn; ghi trễ → chặn → duyệt → công bố; giờ thực tế làm hỏng ngày sau → 再計画; đổi version quy tắc
+    ac:
+    - Kịch bản tự động trong CI
+  - key: E09-21
+    title: '[QA] Test hiệu năng kiểm tuyến với 1 năm dữ liệu/tài xế (p95 ≤ 2s đọc, 3s ghi)'
+    role: QA-1
+    spec:
+    - DRIVING_TIME_CHECK_TECH §5
+    - NFR-PERF-01
+    deps:
+    - E09-06
+    scope:
+    - Dữ liệu giả lập 366 ngày × N tài xế, đo PUT segments và publish
+    ac:
+    - Báo cáo p95 đạt ngưỡng
+  - key: E09-22
+    title: '[BrSE] Gửi khách bản tóm tắt quy tắc giờ lái và các giả định để xác nhận (QA#27)'
+    role: BrSE
+    spec:
+    - ADR-007 §7
+    - YCL_SYSTEM_DESIGN §11 Q3/Q12/Q13
+    labels:
+    - clarification
+    scope:
+    - Bảng quy tắc + ngưỡng + cách đọc đang dùng, bằng tiếng Nhật
+    ac:
+    - Khách xác nhận hoặc trả lời từng mục; thay đổi thành issue mới
+- key: E10
+  title: Truy xuất
+  release: R1
+  goal: Tra một mã lô / mã cá thể bò / mã giao dịch gạo ra chuỗi nhập → lô → đơn → giao.
+  spec:
+  - traceability/README
+  - L001_SPEC
+  issues:
+  - key: E10-01
+    title: '[BE] API-TRC-001: kiểm quyền P-17, đủ trường theo L001'
+    role: BE-1
+    spec:
+    - L001_SPEC §4.3
+    deps:
+    - E02-03
+    scope:
+    - Giữ truy vấn prototype, thêm guard quyền và trường thiếu
+    ac:
+    - Trường trả về khớp L001_SPEC §4.3
+  - key: E10-02
+    title: '[FE] L001 トレーサビリティ検索 (rút gọn)'
+    role: FE-2
+    spec:
+    - L001_SPEC
+    deps:
+    - E10-01
+    scope:
+    - Ô tìm kiếm, cây kết quả
+    ac:
+    - Đúng wireframe L001
+- key: E11
+  title: Kiểm thử hệ thống và chuẩn bị phát hành Release 1
+  release: R1
+  goal: Kiểm E2E các luồng chính, hiệu năng, dữ liệu UAT giả lập, runbook phát hành.
+  spec:
+  - YCL_SYSTEM_DESIGN §8 (NFR)
+  - §9 (nghiệm thu)
+  - §10 (triển khai)
+  issues:
+  - key: E11-01
+    title: '[QA] E2E: nhập hàng → cách ly → release 2 người'
+    role: QA-1
+    spec:
+    - YCL_SYSTEM_DESIGN §9
+    deps:
+    - E04-10
+    - E11-05
+    scope:
+    - Playwright trên UAT với dữ liệu giả lập
+    ac:
+    - Kịch bản xanh trên UAT
+  - key: E11-02
+    title: '[QA] E2E: đơn → phân bổ → xuất → POD'
+    role: QA-1
+    spec:
+    - YCL_SYSTEM_DESIGN §9
+    deps:
+    - E06-10
+    - E07-10
+    - E11-05
+    scope:
+    - Playwright, gồm nhánh phân bổ một phần
+    ac:
+    - Kịch bản xanh trên UAT
+  - key: E11-03
+    title: '[QA] E2E: lập tuyến → công bố → tài xế ghi giờ → kiểm lại'
+    role: QA-1
+    spec:
+    - YCL_SYSTEM_DESIGN §9
+    deps:
+    - E08-07
+    - E09-16
+    - E09-18
+    - E11-05
+    scope:
+    - Playwright, gồm nhánh vi phạm bị chặn
+    ac:
+    - Kịch bản xanh trên UAT
+    constraint: driving-2024
+  - key: E11-04
+    title: '[QA] Test hiệu năng chung (NFR-PERF-01/02) với dữ liệu giả lập'
+    role: QA-1
+    spec:
+    - YCL_SYSTEM_DESIGN §8
+    deps:
+    - E01-07
+    - E06-07
+    - E10-01
+    - E05-09
+    - E11-05
+    scope:
+    - Sinh dữ liệu hiệu năng giả lập theo NFR-PERF-02 (khối lượng 3 năm)
+    - 'k6: phân bổ, truy xuất, hàng đợi alarm; 80 người dùng đồng thời giả định'
+    ac:
+    - Báo cáo p95 theo ngưỡng NFR
+  - key: E11-05
+    title: '[BE] Bộ dữ liệu UAT giả lập + script reset môi trường UAT'
+    role: BE-2
+    spec:
+    - YCL_SYSTEM_DESIGN §10
+    deps:
+    - E01-01
+    scope:
+    - Master, lô, đơn, tài xế, giờ làm 60 ngày; không dùng dữ liệu thật
+    ac:
+    - Reset UAT trong < 10 phút
+  - key: E11-06
+    title: '[BrSE] Runbook phát hành Release 1 + hoàn nguyên migration'
+    role: BrSE
+    spec:
+    - YCL_SYSTEM_DESIGN §10
+    scope:
+    - Trình tự deploy, kiểm sau deploy, điều kiện go/no-go (gồm mục ★ Release 1.1), cách hoàn nguyên
+    - Quy trình tài khoản break-glass của R11 (MFA, có log) theo A001
+    ac:
+    - Diễn tập 1 lần trên UAT
+- key: E12
+  title: Release 1.1 — viết spec trước khi break task
+  release: R1.1
+  goal: Các yêu cầu P0 LAB-4 chưa thiết kế đủ (PREMISE LAB-4 §4.1). Release 1 không go-live khi mục ★ chưa xong. Ở đây chỉ có issue viết spec; break task dev sau khi spec được duyệt.
+  spec:
+  - PREMISE (LAB-4) §4.1
+  - ADR-010
+  issues:
+  - key: E12-01
+    title: '[DOC] ★ Spec POD offline 8 giờ: BM-51 màn + BM-52 API đồng bộ'
+    role: BrSE
+    spec:
+    - ADR-010
+    - D002_SPEC §6.5
+    scope:
+    - Hàng đợi offline, idempotency client_pod_id, xung đột khi đồng bộ, giới hạn 8 giờ
+    ac:
+    - Spec được PL duyệt; có danh sách issue dev dự kiến
+  - key: E12-02
+    title: '[DOC] ★ Spec upload ảnh POD/nhập kho lên Storage, server tính hash'
+    role: BrSE
+    spec:
+    - ADR-010
+    scope:
+    - API upload, hash ở server, quyền đọc file, giữ version ảnh
+    ac:
+    - Spec được PL duyệt
+  - key: E12-03
+    title: '[DOC] ★ Spec 受取拒否 và đảo dòng lịch sử giao 2 người (reverse_delivery_line)'
+    role: BrSE
+    spec:
+    - ADR-005
+    - DIV-04
+    scope:
+    - Nhánh từ chối nhận ở POD, đảo dòng có lý do + người duyệt khác
+    ac:
+    - Spec được PL duyệt
+  - key: E12-04
+    title: '[DOC] ★ Spec hồ sơ 逸脱 + màn điều tra (F22-02)'
+    role: BrSE
+    spec:
+    - ADR-008
+    - alarms.deviation_id
+    scope:
+    - Bản ghi 逸脱 cho mỗi alarm/lần chặn, màn điều tra, ma trận duyệt chờ QA#22
+    ac:
+    - Spec được PL duyệt
+  - key: E12-05
+    title: '[DOC] ★ Spec đề xuất/duyệt chính sách và quy tắc (ngưỡng nhiệt, giờ lái, quy tắc giao) — P-18'
+    role: BrSE
+    spec:
+    - ADR-006
+    scope:
+    - Luồng proposed → approved → active, người đề xuất ≠ người duyệt, hiệu lực tương lai
+    ac:
+    - Spec được PL duyệt
+  - key: E12-06
+    title: '[DOC] Spec thu hồi (F25): ca thu hồi + đối chiếu số lượng'
+    role: BrSE
+    spec:
+    - PREMISE (LAB-4) §4.1
+    scope:
+    - Màn ca thu hồi, đối chiếu đã xuất/đã thu
+    ac:
+    - Spec được PL duyệt
+  - key: E12-07
+    title: '[DOC] Spec xuất bằng chứng audit kèm manifest checksum (F27)'
+    role: BrSE
+    spec:
+    - PREMISE (LAB-4) §4.1
+    scope:
+    - Phạm vi export, manifest, quyền
+    ac:
+    - Spec được PL duyệt
+  - key: E12-08
+    title: '[DOC] Spec di chuyển lô (F09/F11) để cách ly đúng phạm vi'
+    role: BrSE
+    spec:
+    - PREMISE (LAB-4) §4.1
+    - ADR-008
+    scope:
+    - Ghi lịch sử vị trí, đổi phạm vi cách ly sang theo vị trí thực
+    ac:
+    - Spec được PL duyệt
+  - key: E12-09
+    title: '[DOC] Spec khoá tra cứu theo SKU / nhà cung cấp / 産地 gạo'
+    role: BrSE
+    spec:
+    - PREMISE (LAB-4) §4.1
+    - L001_SPEC
+    scope:
+    - Thêm khoá tra cứu và chỉ mục
+    ac:
+    - Spec được PL duyệt
+  - key: E12-10
+    title: '[DOC] Spec báo cáo alarm quá hạn SLA (F26)'
+    role: BrSE
+    spec:
+    - PREMISE (LAB-4) §4.1
+    scope:
+    - Báo cáo quản lý theo kỳ, số alarm quá 15 phút
+    ac:
+    - Spec được PL duyệt
+  - key: E12-11
+    title: '[DOC] Spec ghi sự cố tuyến S003/D003 (FR-SCH-05) — bổ sung ở LAB-5'
+    role: BrSE
+    spec:
+    - DIV-14
+    - PREMISE.md (LAB-5) S1
+    scope:
+    - Màn ghi sự cố có bằng chứng, bảng route_incidents chỉ ghi thêm, không sửa kết quả kiểm
+    ac:
+    - Spec được PL duyệt
+    constraint: driving-2024
