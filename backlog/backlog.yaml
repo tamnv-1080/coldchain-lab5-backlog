@@ -682,10 +682,27 @@ epics:
     - TEMPERATURE_DB
     deps:
     - E03-03
-    scope:
-    - 'alarms: device_id, first_read_at, last_read_at, peak_value_c, reading_count, bỏ reading_id; temperature_readings.alarm_id; alarms.affected_shipments; bảng temperature_gaps; alarms.deviation_id (chưa FK)'
-    ac:
-    - Migration chạy trên dữ liệu seed, chuyển alarm cũ sang mô hình đợt
+    subs:
+    - key: E05-13a
+      title: '[DB] Migration alarm theo đợt: alarms (device_id, first/last_read_at, peak_value_c, reading_count, bỏ reading_id) + temperature_readings.alarm_id'
+      spec:
+      - DIV-35
+      - DIV-08
+      - TEMPERATURE_DB
+      scope:
+      - 'Đổi cấu trúc alarms sang mô hình đợt; thêm temperature_readings.alarm_id; chuyển alarm cũ (1 alarm/1 số đo) sang đợt'
+      ac:
+      - Migration chạy trên dữ liệu seed; alarm cũ gom đúng thành đợt theo logger, không mất số đo
+    - key: E05-13b
+      title: '[DB] Migration alarms.affected_shipments + bảng temperature_gaps + alarms.deviation_id (chưa FK)'
+      spec:
+      - DIV-16
+      - DIV-39
+      - TEMPERATURE_DB
+      scope:
+      - 'Thêm alarms.affected_shipments, bảng temperature_gaps (OPEN/CLOSED, người đóng, lý do), alarms.deviation_id để sẵn, chưa gắn FK'
+      ac:
+      - Migration chạy trên dữ liệu seed; RLS của temperature_gaps theo quyền đọc nhiệt độ
   - key: E05-05
     title: '[DB] RPC record_temperature_import trong 1 transaction; UNIQUE (device_id, read_at)'
     role: BE-2
@@ -697,10 +714,27 @@ epics:
     - E03-03
     - E01-05
     - E05-13
-    scope:
-    - Trùng SHA-256 từ chối; dòng trùng (device_id, read_at) → DUPLICATE_READING; ghi readings, alarms, cách ly, detected_at
-    ac:
-    - Import lại cùng file không sinh alarm đôi; 2 file chồng khoảng không tạo số đo trùng
+    subs:
+    - key: E05-05a
+      title: '[DB] RPC record_temperature_import: ghi readings, alarm theo đợt, cách ly, detected_at trong 1 transaction'
+      spec:
+      - TEMPERATURE_IMPORT_TECH §4.6
+      - DIV-08
+      scope:
+      - Một transaction ghi readings, mở/gộp alarm theo đợt, đặt cách ly lô liên quan, ghi detected_at; lỗi giữa chừng thì rollback toàn bộ
+      ac:
+      - File hợp lệ ghi đủ readings/alarm/cách ly; lỗi ở dòng cuối thì không còn dòng nào được ghi
+    - key: E05-05b
+      title: '[DB] Chống trùng import: SHA-256 file + UNIQUE (device_id, read_at) → DUPLICATE_READING'
+      deps:
+      - E05-05a
+      spec:
+      - TEMPERATURE_IMPORT_TECH §4.6
+      - DIV-20
+      scope:
+      - Trùng SHA-256 từ chối cả file; dòng trùng (device_id, read_at) trả DUPLICATE_READING, không ghi đè
+      ac:
+      - Import lại cùng file không sinh alarm đôi; 2 file chồng khoảng không tạo số đo trùng
   - key: E05-06
     title: '[BE] detectGaps: khoảng trống > 15 phút giữa 2 lần đo → 記録欠落'
     role: BE-1

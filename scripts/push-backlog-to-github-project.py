@@ -5,7 +5,10 @@ Steps (each safe to re-run; state kept in backlog/github-issue-map.json):
   project  create/link the Project, its custom fields and labels
   issues   create epics, issues, sub-issues in dependency order; add to Project;
            set single-select fields; link parent/sub-issue and blocked-by
-Usage: python3 scripts/push-backlog-to-github-project.py project|issues
+  set-estimates [KEY...]  write SWP + hours from backlog/estimates.json
+  refresh-body KEY...     re-render body of existing issues
+  preview KEY             print title/labels/body without calling GitHub
+Usage: python3 scripts/push-backlog-to-github-project.py <command> [args]
 Needs: gh authenticated with scopes repo + project.
 """
 import json, subprocess, sys, time
@@ -210,27 +213,29 @@ def push_issues(st):
         print(f"#{rec['number']:>3} {k}")
 
 
-def report_payload(html_path):
-    """Read the validated payload embedded in the estimate-swp HTML report."""
-    import re
-    text = Path(html_path).read_text(encoding="utf-8")
-    return json.loads(re.search(r'<script[^>]*type="application/json"[^>]*>(.*?)</script>', text, re.S).group(1))
-
-
 def set_number(st, item_id, field, value):
-    gql("mutation($p:ID!,$i:ID!,$f:ID!,$v:Float!){updateProjectV2ItemFieldValue(input:{projectId:$p,"
-        "itemId:$i,fieldId:$f,value:{number:$v}}){projectV2Item{id}}}",
-        p=st["project_id"], i=item_id, f=st["fields"][field]["id"], v=value)
+    # number inlined as a literal: gh -F sends "16.5" as a string, which Float! rejects
+    gql("mutation($p:ID!,$i:ID!,$f:ID!){updateProjectV2ItemFieldValue(input:{projectId:$p,"
+        f"itemId:$i,fieldId:$f,value:{{number:{float(value)}}}}}){{projectV2Item{{id}}}}}}",
+        p=st["project_id"], i=item_id, f=st["fields"][field]["id"])
 
 
-def set_swp(st, html_path):
-    """Write reviewed finalSWP (leaves) and derived rollups (parents) to the SWP field."""
-    pl = report_payload(html_path)
-    by_number = {v["number"]: v for v in st["issues"].values()}
-    rows = [(r["issueRef"], r["finalSWP"]) for r in pl["issues"] + pl["parents"] if r.get("finalSWP") is not None]
-    for ref, swp in rows:
-        set_number(st, by_number[int(ref.rsplit("#", 1)[1])]["item"], "SWP", swp)
-    print(f"SWP written: {len(rows)} items, leaf total {sum(r['finalSWP'] for r in pl['issues'])}")
+def set_estimates(st, keys=None):
+    """Write SWP + Giờ ước lượng from backlog/estimates.json (made by compute-estimates.py)."""
+    est = json.loads((ROOT / "backlog" / "estimates.json").read_text())["items"]
+    for k in keys or est:
+        set_number(st, st["issues"][k]["item"], "SWP", est[k]["swp"])
+        set_number(st, st["issues"][k]["item"], "Giờ ước lượng", est[k]["hours"])
+    print(f"estimates written: {len(keys or est)} items")
+
+
+def refresh_body(st, keys):
+    """Re-render the body of existing issues after backlog.yaml changed (e.g. split into subs)."""
+    by_key = {n["key"]: n for n in nodes()}
+    for k in keys:
+        gh("issue", "edit", str(st["issues"][k]["number"]), "-R", f"{OWNER}/{REPO}",
+           "--body", body_of(by_key[k], st), parse=False)
+        print(f"body refreshed #{st['issues'][k]['number']} {k}")
 
 
 def preview(st, key):
@@ -244,7 +249,9 @@ if __name__ == "__main__":
     state = load_state()
     if sys.argv[1] == "preview":
         preview(state, sys.argv[2])
-    elif sys.argv[1] == "set-swp":
-        set_swp(state, sys.argv[2])
+    elif sys.argv[1] == "set-estimates":
+        set_estimates(state, sys.argv[2:])
+    elif sys.argv[1] == "refresh-body":
+        refresh_body(state, sys.argv[2:])
     else:
         {"project": setup_project, "issues": push_issues}[sys.argv[1]](state)

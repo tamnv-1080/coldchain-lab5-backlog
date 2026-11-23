@@ -10,7 +10,7 @@ Nguồn duy nhất của backlog: [`backlog/backlog.yaml`](backlog/backlog.yaml)
 |---|---|
 | Một issue = một phần giao được | Review được trong một PR, có điều kiện nghiệm thu kiểm được (test, wireframe, hợp đồng BM-52). Không có issue kiểu "làm màn X" chung chung |
 | Tách theo lớp khi lớp đó có người làm riêng | `[DB]` migration/RPC (BE-2) · `[BE]` engine TS + route API (BE-1) · `[FE]` màn hình · `[QA]` test tự động. Gộp `[DB+BE]` khi RPC và route nhỏ, một người làm liền mạch tốt hơn |
-| Trần kích thước | Mục lá ≤ 8 SWP (≈ ≤ 3 ngày công). Lớn hơn thì tách |
+| Trần kích thước | Mục lá ≤ 8 SWP (≈ 24 giờ BE/DB, 44 giờ FE — `estimate.md` §3). Lớn hơn thì tách. Kiểm lại sau khi chấm: 2 mục 10 SWP (E05-05, E05-13) đã tách, giữ tổng |
 | Dừng tách | Khi tách thêm sẽ ra phần không test riêng được, hoặc nhỏ hơn ~2 giờ |
 | Việc không phải code vẫn là issue | Câu hỏi cho khách (`clarification`), spike có time-box (`spike`), viết spec R1.1 (`[DOC]`) — vì chúng chặn issue khác và tốn giờ thật |
 
@@ -21,6 +21,8 @@ Tách sub-issue khi một issue chứa **nhiều quy tắc nghiệp vụ độc 
 Áp dụng ở hai chỗ có nhiều biến nhất:
 - `E06-03` engine phân bổ: 消費期限, dải nhiệt, hạn giao theo hợp đồng, 日付逆転, FEFO.
 - `E09-03` / `E09-04` kiểm giờ lái: 4 nhóm quy tắc trong ngày, 7 quy tắc nhiều ngày (ràng buộc 2024).
+
+Ngoài ra tách sub-issue khi một issue vượt trần kích thước (§1.1) hoặc gồm các phần do lớp/người khác nhau làm: `E02-02` (RLS theo nhóm bảng), `E05-05` / `E05-13` (tách sau khi chấm SWP), `E06-03`, `E08-02`, `E09-06`, `E09-11`.
 
 ### 1.3 Định nghĩa xong (DoD) — áp cho mọi issue
 

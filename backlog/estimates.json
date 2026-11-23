@@ -1,0 +1,851 @@
+{
+ "hours_per_swp": {
+  "FE": 5.5,
+  "default": 3.0
+ },
+ "source_report": "estimate-swp-coldchain-lab5-backlog-20261123-070414.html",
+ "items": {
+  "E01-01": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E01-02": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E01-03": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E01-04": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E01-05": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E01-06": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E01-07": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E01-08": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E01-09": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E01-10": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E01-11": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E01-12": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E01": {
+   "swp": 52,
+   "hours": 156.0
+  },
+  "E02-01": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E02-02a": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E02-02b": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E02-02c": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E02-02d": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E02-02": {
+   "swp": 12,
+   "hours": 36.0
+  },
+  "E02-03": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E02-04": {
+   "swp": 2,
+   "hours": 11.0
+  },
+  "E02-05": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E02-06": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E02-07": {
+   "swp": 2,
+   "hours": 11.0
+  },
+  "E02-08": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E02-09": {
+   "swp": 2,
+   "hours": 11.0
+  },
+  "E02-10": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E02-11": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E02-12": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E02": {
+   "swp": 51,
+   "hours": 168.0
+  },
+  "E03-01": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E03-02": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E03-03": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E03-04": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E03-05": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E03": {
+   "swp": 23,
+   "hours": 79.0
+  },
+  "E04-01": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E04-02": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E04-03": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E04-04": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E04-05": {
+   "swp": 3,
+   "hours": 16.5
+  },
+  "E04-06": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E04-07": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E04-08": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E04-09": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E04-10": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E04-11": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E04-12": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E04": {
+   "swp": 45,
+   "hours": 162.5
+  },
+  "E05-01": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E05-02": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E05-03": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E05-04": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E05-13a": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E05-13b": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E05-13": {
+   "swp": 10,
+   "hours": 30.0
+  },
+  "E05-05a": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E05-05b": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E05-05": {
+   "swp": 10,
+   "hours": 30.0
+  },
+  "E05-06": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E05-07": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E05-08": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E05-09": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E05-10": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E05-11": {
+   "swp": 5,
+   "hours": 27.5
+  },
+  "E05-12": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E05": {
+   "swp": 62,
+   "hours": 208.5
+  },
+  "E06-01": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E06-02": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E06-03a": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E06-03b": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E06-03c": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E06-03d": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E06-03e": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E06-03": {
+   "swp": 17,
+   "hours": 51.0
+  },
+  "E06-04": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E06-05": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E06-06": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E06-13": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E06-07": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E06-08": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E06-09": {
+   "swp": 5,
+   "hours": 27.5
+  },
+  "E06-10": {
+   "swp": 3,
+   "hours": 16.5
+  },
+  "E06-11": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E06-12": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E06": {
+   "swp": 76,
+   "hours": 258.0
+  },
+  "E07-01": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E07-02": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E07-03": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E07-04": {
+   "swp": 5,
+   "hours": 27.5
+  },
+  "E07-05": {
+   "swp": 2,
+   "hours": 11.0
+  },
+  "E07-06": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E07-07": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E07-08": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E07-09": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E07-10": {
+   "swp": 5,
+   "hours": 27.5
+  },
+  "E07-11": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E07-12": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E07": {
+   "swp": 47,
+   "hours": 171.0
+  },
+  "E08-01": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E08-02a": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E08-02b": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E08-02": {
+   "swp": 10,
+   "hours": 30.0
+  },
+  "E08-03": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E08-04": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E08-05": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E08-06": {
+   "swp": 8,
+   "hours": 44.0
+  },
+  "E08-07": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E08-08": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E08-09": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E08": {
+   "swp": 38,
+   "hours": 144.0
+  },
+  "E09-01": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-02": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-03a": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-03b": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-03c": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E09-03d": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-03": {
+   "swp": 10,
+   "hours": 30.0
+  },
+  "E09-04a": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E09-04b": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E09-04c": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-04d": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E09-04e": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E09-04f": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E09-04g": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-04": {
+   "swp": 15,
+   "hours": 45.0
+  },
+  "E09-05": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-23": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-06a": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-06b": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E09-06c": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-06": {
+   "swp": 12,
+   "hours": 36.0
+  },
+  "E09-07": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-08": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-09": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-10": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-11a": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-11b": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-11c": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-11": {
+   "swp": 11,
+   "hours": 33.0
+  },
+  "E09-12": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-13": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-14": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E09-15": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09-16": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E09-17": {
+   "swp": 3,
+   "hours": 16.5
+  },
+  "E09-18": {
+   "swp": 4,
+   "hours": 22.0
+  },
+  "E09-19": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E09-20": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E09-21": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E09-22": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E09": {
+   "swp": 134,
+   "hours": 429.5
+  },
+  "E10-01": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E10-02": {
+   "swp": 3,
+   "hours": 16.5
+  },
+  "E10": {
+   "swp": 6,
+   "hours": 25.5
+  },
+  "E11-01": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E11-02": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E11-03": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E11-04": {
+   "swp": 8,
+   "hours": 24.0
+  },
+  "E11-05": {
+   "swp": 5,
+   "hours": 15.0
+  },
+  "E11-06": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E11": {
+   "swp": 34,
+   "hours": 102.0
+  },
+  "E12-01": {
+   "swp": 6,
+   "hours": 18.0
+  },
+  "E12-02": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E12-03": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E12-04": {
+   "swp": 4,
+   "hours": 12.0
+  },
+  "E12-05": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E12-06": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E12-07": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E12-08": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E12-09": {
+   "swp": 2,
+   "hours": 6.0
+  },
+  "E12-10": {
+   "swp": 1,
+   "hours": 3.0
+  },
+  "E12-11": {
+   "swp": 3,
+   "hours": 9.0
+  },
+  "E12": {
+   "swp": 32,
+   "hours": 96.0
+  }
+ },
+ "epics": [
+  {
+   "key": "E01",
+   "title": "Nền tảng, hạ tầng và khoá đường ghi",
+   "release": "R1",
+   "issues": 12,
+   "swp": 52,
+   "hours": 156.0,
+   "leaves": 12,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 0
+  },
+  {
+   "key": "E02",
+   "title": "Phân quyền 12 role và đăng nhập",
+   "release": "R1",
+   "issues": 12,
+   "swp": 51,
+   "hours": 168.0,
+   "leaves": 15,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 6
+  },
+  {
+   "key": "E03",
+   "title": "Master và chính sách có version",
+   "release": "R1",
+   "issues": 5,
+   "swp": 23,
+   "hours": 79.0,
+   "leaves": 5,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 4
+  },
+  {
+   "key": "E04",
+   "title": "Nhập hàng và chất lượng lô",
+   "release": "R1",
+   "issues": 12,
+   "swp": 45,
+   "hours": 162.5,
+   "leaves": 12,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 11
+  },
+  {
+   "key": "E05",
+   "title": "Nhiệt độ, alarm và SLA 15 phút",
+   "release": "R1",
+   "issues": 13,
+   "swp": 62,
+   "hours": 208.5,
+   "leaves": 15,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 9
+  },
+  {
+   "key": "E06",
+   "title": "Đơn hàng và phân bổ lô (出荷可否判定エンジン)",
+   "release": "R1",
+   "issues": 13,
+   "swp": 76,
+   "hours": 258.0,
+   "leaves": 17,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 12
+  },
+  {
+   "key": "E07",
+   "title": "Xuất hàng và POD (luồng online)",
+   "release": "R1",
+   "issues": 12,
+   "swp": 47,
+   "hours": 171.0,
+   "leaves": 12,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 12
+  },
+  {
+   "key": "E08",
+   "title": "Lập tuyến (soạn, huỷ, màn hình)",
+   "release": "R1",
+   "issues": 9,
+   "swp": 38,
+   "hours": 144.0,
+   "leaves": 10,
+   "constraint_swp": 17,
+   "constraint_hours": 61.0,
+   "fe_swp": 12
+  },
+  {
+   "key": "E09",
+   "title": "★ Giờ lái xe tải từ 2024: kiểm 拘束時間 và giờ làm thực tế",
+   "release": "R1",
+   "issues": 23,
+   "swp": 134,
+   "hours": 429.5,
+   "leaves": 36,
+   "constraint_swp": 134,
+   "constraint_hours": 429.5,
+   "fe_swp": 11
+  },
+  {
+   "key": "E10",
+   "title": "Truy xuất",
+   "release": "R1",
+   "issues": 2,
+   "swp": 6,
+   "hours": 25.5,
+   "leaves": 2,
+   "constraint_swp": 0,
+   "constraint_hours": 0.0,
+   "fe_swp": 3
+  },
+  {
+   "key": "E11",
+   "title": "Kiểm thử hệ thống và chuẩn bị phát hành Release 1",
+   "release": "R1",
+   "issues": 6,
+   "swp": 34,
+   "hours": 102.0,
+   "leaves": 6,
+   "constraint_swp": 5,
+   "constraint_hours": 15.0,
+   "fe_swp": 0
+  },
+  {
+   "key": "E12",
+   "title": "Release 1.1 — viết spec trước khi break task",
+   "release": "R1.1",
+   "issues": 11,
+   "swp": 32,
+   "hours": 96.0,
+   "leaves": 11,
+   "constraint_swp": 3,
+   "constraint_hours": 9.0,
+   "fe_swp": 0
+  }
+ ]
+}

@@ -1,0 +1,11 @@
+# SWP của các mục KHÔNG có trong báo cáo skill (reports/estimate-swp-*.html).
+# Chỉ dùng cho sub-issue sinh ra sau khi chấm, khi người review quyết định tách mục vượt trần 8 SWP.
+# Quy tắc: giữ nguyên tổng SWP của mục gốc; trục Scope/Complexity tra theo ma trận của skill.
+# Người chốt: PL (LAB-5, 2026-11-23). Lý do chi tiết: estimate.md §2.
+split_from_report:
+  E05-05:   # skill chấm S5 × C3 = 10
+    E05-05a: {scope: 3, complexity: 3, swp: 6, why: 'RPC ghi 4 loại dữ liệu trong 1 transaction, rollback toàn bộ'}
+    E05-05b: {scope: 2, complexity: 3, swp: 4, why: 'Chống trùng 2 tầng (file + dòng), ca import lại/chồng khoảng'}
+  E05-13:   # skill chấm S5 × C3 = 10
+    E05-13a: {scope: 3, complexity: 3, swp: 6, why: 'Đổi cấu trúc alarms + chuyển dữ liệu alarm cũ sang mô hình đợt'}
+    E05-13b: {scope: 2, complexity: 3, swp: 4, why: 'Thêm cột/bảng mới, deviation_id để sẵn chưa FK'}
