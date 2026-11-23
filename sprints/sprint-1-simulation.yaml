@@ -1,0 +1,64 @@
+# Kịch bản giả lập Sprint 1 — nguồn duy nhất cho Project (Iteration, Status), burndown và progress-report.md.
+# Đây là dữ liệu GIẢ LẬP để làm mẫu báo cáo, không phải tiến độ thật.
+# Script: scripts/simulate-sprint.py (iteration | apply | report | verify)
+#
+# Cách chọn phạm vi (ghi ở progress-report.md §1):
+#   - Chỉ nhận mục có phụ thuộc xong được ngay trong sprint (deps trong backlog.yaml).
+#   - Capacity 51 giờ/người/sprint (PREMISE A5, estimate.md §3); không ai nhận quá 51 giờ.
+#   - Mọi màn hình [FE] đều chờ API → FE-1, FE-2 nhận engine TS không phụ thuộc (PREMISE H7).
+# Trường của mỗi mục:
+#   status   Todo | In Progress | In Review | Blocked | Done (trạng thái cuối sprint, ngày 10)
+#   done_day ngày làm thứ mấy thì Done (1..10) — dùng vẽ burndown
+#   actual   giờ thực tế (chỉ mục Done) — dùng kiểm lại hệ số giờ
+#   note     lý do, nhất là với mục chưa xong
+iteration:
+  field: Iteration
+  start: 2026-12-01
+  duration_days: 14
+  count: 7            # Sprint 1..7 tạo sẵn trên Project; chỉ Sprint 1 có dữ liệu
+sprint:
+  title: Sprint 1
+  goal: Dựng môi trường, khoá đường ghi vào DB, chốt các câu hỏi đang chặn việc với khách
+  workdays: [2026-12-01, 2026-12-02, 2026-12-03, 2026-12-04, 2026-12-07,
+             2026-12-08, 2026-12-09, 2026-12-10, 2026-12-11, 2026-12-14]
+  capacity_hours_per_person: 51
+  team: [BE-1, BE-2, FE-1, FE-2, QA-1, BrSE]
+items:
+  # BE-2 — hạ tầng và khoá đường ghi
+  - {key: E01-01, status: Done, done_day: 7, actual: 30,
+     note: "Dev/test xong ngày 4; UAT/prod chờ khách duyệt QA#12 (E01-11), duyệt ngày 6"}
+  - {key: E01-05, status: In Review,
+     note: "Bắt đầu ngày 6 (chờ E01-04). Số chỗ gọi RPC nhiều hơn spec, PR mở ngày 10"}
+  - {key: E01-07, status: Todo,
+     note: "BE-2 hết giờ vì E01-01 kéo dài; chuyển Sprint 2"}
+  # BE-1 — quy ước BFF, thư viện lỗi, engine
+  - {key: E01-03, status: Done, done_day: 2, actual: 5}
+  - {key: E01-08, status: Done, done_day: 3, actual: 7}
+  - {key: E01-04, status: Done, done_day: 5, actual: 18}
+  - {key: E05-01, status: Done, done_day: 8, actual: 9}
+  - {key: E04-01, status: In Progress, note: "Bắt đầu ngày 9, còn khoảng 1 ngày"}
+  - {key: E08-09, status: In Progress,
+     note: "Spike chỉ bắt đầu được sau khi khách trả lời dịch vụ bản đồ (E08-08, ngày 8)"}
+  # FE-1 — engine phân bổ (chuyển từ BE-1, PREMISE H7)
+  - {key: E06-03a, status: Done, done_day: 4, actual: 12}
+  - {key: E06-03b, status: Done, done_day: 7, actual: 11}
+  - {key: E06-03d, status: In Progress,
+     note: "日付逆転: phải hỏi PL cách so khi khách có nhiều điểm giao; còn khoảng 40%"}
+  # FE-2 — engine giờ làm, bằng chứng POD, FEFO (chuyển từ BE-1, PREMISE H7)
+  - {key: E09-10, status: Done, done_day: 5, actual: 11}
+  - {key: E07-07, status: Done, done_day: 8, actual: 10}
+  - {key: E06-03e, status: In Review, note: "PR mở ngày 10"}
+  # QA-1 — khung test
+  - {key: E01-09, status: Done, done_day: 6, actual: 12}
+  - {key: E01-10, status: Blocked, note: "Chờ E01-05 (đang review)"}
+  # BrSE — câu hỏi cho khách
+  - {key: E01-11, status: Done, done_day: 6, actual: 8, note: "Khách duyệt hạ tầng Tokyo ngày 6"}
+  - {key: E07-12, status: Done, done_day: 4, actual: 2, note: "Chốt không ghi PICKED/LOADED ở R1"}
+  - {key: E08-08, status: Done, done_day: 8, actual: 3, note: "Khách trả lời ngày 8, chậm 4 ngày so với hẹn"}
+  - {key: E02-10, status: Blocked,
+     note: "Hỏi IdP ngày 1, nhắc ngày 7; khách chưa trả lời. Chặn E02-05 SSO (Sprint 2)"}
+  - {key: E09-22, status: In Review,
+     note: "Gửi bản tóm tắt quy tắc giờ lái ngày 7; khách đang xem, hẹn trả lời 2026-12-18"}
+  - {key: E12-01, status: In Progress,
+     note: "Spec POD offline (R1.1★, mốc M2). Bản nháp khoảng 50%: BrSE mất giờ nhắc khách IdP và bản đồ"}
+parents_in_progress: [E06-03]   # issue cha có con trong sprint → In Progress (không tính vào bảng)

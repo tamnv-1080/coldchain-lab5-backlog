@@ -872,6 +872,7 @@ epics:
     subs:
     - key: E06-03a
       title: '[BE] Quy tắc 消費期限: chặn cứng, ưu tiên trước mọi quy tắc'
+      role: FE-1  # Sprint 1: chuyển từ BE-1 (PREMISE H7)
       spec:
       - ALLOCATION_ENGINE_TECH §4.3
       - PREMISE D08
@@ -881,6 +882,7 @@ epics:
       - Ca biên đúng ngày hạn và hạn - 1
     - key: E06-03b
       title: '[BE] Quy tắc dải nhiệt, vị trí cách ly và trạng thái lô'
+      role: FE-1  # Sprint 1: chuyển từ BE-1 (PREMISE H7)
       spec:
       - ALLOCATION_ENGINE_TECH §4.3
       scope:
@@ -900,6 +902,7 @@ epics:
       - Ca biên làm tròn; hợp đồng chưa đặt quy tắc → BUSINESS_REVIEW
     - key: E06-03d
       title: '[BE] Quy tắc 日付逆転 theo lịch sử giao khách × SKU'
+      role: FE-1  # Sprint 1: chuyển từ BE-1 (PREMISE H7)
       spec:
       - ALLOCATION_ENGINE_TECH §4.3
       - PREMISE D07/D18
@@ -910,6 +913,7 @@ epics:
       - Mọi ca 日付逆転 trong bảng ca biên pass
     - key: E06-03e
       title: '[BE] FEFO xếp hạng lô + ghi evidence kèm snapshot hợp đồng'
+      role: FE-2  # Sprint 1: chuyển từ BE-1 (PREMISE H7)
       spec:
       - ALLOCATION_ENGINE_TECH §4.3
       - ADR-006 §7
@@ -1135,7 +1139,7 @@ epics:
     - Migration chạy được; delivery_history.completed_at lấy captured_at
   - key: E07-07
     title: '[BE] pod-evidence: ma trận bằng chứng delivery_term × hợp đồng'
-    role: BE-1
+    role: FE-2  # Sprint 1: chuyển từ BE-1 (PREMISE H7)
     spec:
     - POD_COMPLETE_TECH §4.3
     - PREMISE D10
@@ -1645,7 +1649,7 @@ epics:
     - 'Migration + RLS: tài xế chỉ đọc dữ liệu của mình'
   - key: E09-10
     title: '[BE] Engine replay chuỗi sự kiện giờ làm (6 loại sự kiện)'
-    role: BE-1
+    role: FE-2  # Sprint 1: chuyển từ BE-1 (PREMISE H7)
     spec:
     - WORK_EVENT_RECORD_TECH §4.3
     scope:
