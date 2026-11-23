@@ -45,7 +45,7 @@ def gh(*args, parse=True):
 def gql(query, **variables):
     args = ["api", "graphql", "-f", f"query={query}"]
     for k, v in variables.items():
-        args += ["-F" if isinstance(v, int) else "-f", f"{k}={v}"]
+        args += ["-F" if isinstance(v, (int, float)) else "-f", f"{k}={v}"]
     res = gh(*args)
     if res.get("errors"):
         raise RuntimeError(res["errors"])
@@ -210,6 +210,29 @@ def push_issues(st):
         print(f"#{rec['number']:>3} {k}")
 
 
+def report_payload(html_path):
+    """Read the validated payload embedded in the estimate-swp HTML report."""
+    import re
+    text = Path(html_path).read_text(encoding="utf-8")
+    return json.loads(re.search(r'<script[^>]*type="application/json"[^>]*>(.*?)</script>', text, re.S).group(1))
+
+
+def set_number(st, item_id, field, value):
+    gql("mutation($p:ID!,$i:ID!,$f:ID!,$v:Float!){updateProjectV2ItemFieldValue(input:{projectId:$p,"
+        "itemId:$i,fieldId:$f,value:{number:$v}}){projectV2Item{id}}}",
+        p=st["project_id"], i=item_id, f=st["fields"][field]["id"], v=value)
+
+
+def set_swp(st, html_path):
+    """Write reviewed finalSWP (leaves) and derived rollups (parents) to the SWP field."""
+    pl = report_payload(html_path)
+    by_number = {v["number"]: v for v in st["issues"].values()}
+    rows = [(r["issueRef"], r["finalSWP"]) for r in pl["issues"] + pl["parents"] if r.get("finalSWP") is not None]
+    for ref, swp in rows:
+        set_number(st, by_number[int(ref.rsplit("#", 1)[1])]["item"], "SWP", swp)
+    print(f"SWP written: {len(rows)} items, leaf total {sum(r['finalSWP'] for r in pl['issues'])}")
+
+
 def preview(st, key):
     """Print title, labels and body of one node using placeholder issue numbers."""
     fake = {"issues": {n["key"]: {"number": i + 1} for i, n in enumerate(nodes())}}
@@ -221,5 +244,7 @@ if __name__ == "__main__":
     state = load_state()
     if sys.argv[1] == "preview":
         preview(state, sys.argv[2])
+    elif sys.argv[1] == "set-swp":
+        set_swp(state, sys.argv[2])
     else:
         {"project": setup_project, "issues": push_issues}[sys.argv[1]](state)
