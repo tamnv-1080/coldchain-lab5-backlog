@@ -100,7 +100,7 @@ Không chia đều được: 1.212 giờ BE/DB dồn cho 2 người BE, cần kh
 
 ## 5. So với LAB-1
 
-Giờ LAB-1 = (man-day implement BE + FE) × 2,0 (FixBug 0,3 + UT 0,7) × 7 giờ/ngày, theo sheet `Appendix` và `01_Server` của LAB-1, **chưa cộng buffer 30%**. Cột LAB-1 chỉ tính các feature mà R1 của LAB-5 cũng làm; phần đã loại ghi ở cột "Vì sao".
+Giờ LAB-1 = man-day implement (BE + FE) của LAB-1 quy ra giờ theo hệ số trong bản LAB-1, **chưa cộng buffer**. Cột LAB-1 chỉ tính các feature mà R1 của LAB-5 cũng làm; phần đã loại ghi ở cột "Vì sao".
 
 | Phần | LAB-1 (giờ) | LAB-5 (giờ) | Chênh | Vì sao |
 |---|---|---|---|---|
@@ -109,19 +109,19 @@ Giờ LAB-1 = (man-day implement BE + FE) × 2,0 (FixBug 0,3 + UT 0,7) × 7 gi�
 | E03 ↔ F05-07 | 42 | 79 | +37 (1,88) | R1 không có màn CRUD master (F05-01…06) và màn chính sách (F06), vì master nạp bằng seed và duyệt chính sách sang R1.1 (E12-05). LAB-5 cao hơn vì thêm cột vòng đời, hàm chọn version dùng chung và màn M001 |
 | E04 ↔ F08 + F10 | 468 | 162 | −306 (0,35) | Đã loại 入荷予定 (F07-01), 一時温度帯申請, ロットラベル. Phần còn lại lệch nhiều nhất: 2 màn handy (R002, Q001) chỉ 7 SWP, 2 engine kiểm nhập hàng mỗi engine 9 giờ trong khi LAB-1 tính 42 giờ. **Chưa giải thích hết, coi là rủi ro ước thấp** |
 | E05 ↔ F21 + F22-01 | 283 | 208 | −75 (0,74) | Đã loại hồ sơ 逸脱 (F22-02, sang R1.1). LAB-4 thiết kế chi tiết import và đợt alarm nên issue rõ, ít lệch |
-| E06 ↔ F12–F14 | 587 | 258 | −329 (0,44) | LAB-1 nhân thêm 業務難度×1,2 cho engine. LAB-5 chia engine thành 5 quy tắc + 34 ca biên; mỗi quy tắc nhỏ được điểm thấp. Rủi ro ước thấp. LAB-5 gồm script nạp lịch sử giao 18 giờ do PREMISE S4 thêm |
+| E06 ↔ F12–F14 | 587 | 258 | −329 (0,44) | LAB-1 nhân thêm hệ số độ khó nghiệp vụ (theo hệ số trong bản LAB-1) cho engine. LAB-5 chia engine thành 5 quy tắc + 34 ca biên; mỗi quy tắc nhỏ được điểm thấp. Rủi ro ước thấp. LAB-5 gồm script nạp lịch sử giao 18 giờ do PREMISE S4 thêm |
 | E07 ↔ F15–F17 | 525 | 171 | −354 (0,33) | Đã loại POD offline (F17-03), ảnh POD, POD照会, 出庫票 (sang R1.1/phase sau). Phần còn lại: màn handy O005/O006 và D002 chỉ 10 SWP FE. Rủi ro ước thấp |
 | E08 + E09 ↔ F19 + F20 | 608 | 574 | −34 (0,94) | Gần khớp, nhưng vì 2 lý do ngược chiều: LAB-4 thấy quy tắc nhiều ngày, giờ làm thực tế và số dư đầu kỳ phức tạp hơn LAB-1; trong khi từng quy tắc ở LAB-5 bị chấm thấp (§2). LAB-5 gồm phần PREMISE thêm: adapter bản đồ + spike (S5), kiểm khi lưu (S8), script số dư đầu kỳ (S3, S6) |
-| E10 ↔ F24-01 | 123 | 26 | −97 (0,21) | L001 ở LAB-4 rút gọn (chỉ tra theo lô); LAB-1 tính màn L × 業務難度 1,2 |
+| E10 ↔ F24-01 | 123 | 26 | −97 (0,21) | L001 ở LAB-4 rút gọn (chỉ tra theo lô); LAB-1 tính màn cỡ L và nhân hệ số độ khó nghiệp vụ |
 | **Tổng phần so được** | **3.074** | **1.802** | **−1.272 (0,59)** | |
 | Phần LAB-1 có nhưng R1 không làm (21 feature ở trên) | 1.103 | 0 | — | Theo phạm vi LAB-4 §4: sang R1.1 hoặc phase sau. R1.1 hiện chỉ có 96 giờ viết spec |
 | Chức năng LAB-4 không thiết kế (F03, F04, F09, F11, F18, F23, F25–F29) | 1.834 | 0 | — | 2 script nạp dữ liệu thuộc F29 (E06-11, E09-19, 36 giờ) đã tính ở dòng E06 và E08 + E09. Phần còn lại ngoài phạm vi backlog |
 | QA kiểm thử hệ thống | ~1.183 (QA 8,45 người-tháng trong resource plan) | 210 (test tự động của QA-1, đã gồm E2E E11-01…04) | — | Không so được: LAB-5 chỉ tính test tự động gắn với issue. Thiết kế và chạy test case thủ công/UAT chưa thành issue (`task-breakdown.md` §4) |
-| Buffer | +30% trên phát triển | 0 trong issue | — | LAB-5 giữ 15% ở capacity sprint (§3) |
+| Buffer | Theo hệ số trong bản LAB-1 | 0 trong issue | — | LAB-5 giữ 15% ở capacity sprint (§3) |
 
 **Kết luận.** Với cùng phạm vi, LAB-5 bằng khoảng 0,6 lần LAB-1. Không ép cho khớp, vì không bên nào chắc đúng hơn:
 
-- LAB-1 là ước lượng rất thô (Super Rough), dùng hệ số UT/FixBug chuẩn của công ty.
+- LAB-1 là ước lượng rất thô (Super Rough), dùng các hệ số trong bản LAB-1.
 - LAB-5 ước từ dưới lên. Tuy vậy, hệ số giờ do chính người lập backlog ước, và skill có xu hướng chấm thấp mục nhỏ.
 
 Chỗ lệch tập trung ở màn hình handy và engine nghiệp vụ (E04, E06, E07). Tiêu chí đặt trước: nếu Sprint 1 chỉ đạt khoảng 60% số giờ kế hoạch thì LAB-1 đúng hơn. **Sprint 1 giả lập đạt 56%** (120/216 giờ) và giờ thực tế bằng 1,15 lần ước lượng, nên số liệu nghiêng về LAB-1. Một phần của 56% là do chờ khách và chờ phụ thuộc, không chỉ do ước thấp. Vì vậy chưa đổi hệ số: lập kế hoạch tổng thể theo khoảng LAB-5 → LAB-1, và tính lại hệ số cuối Sprint 2 (`progress-report.md` R5).
