@@ -8,7 +8,7 @@
 #   constraint: driving-2024  → hạng mục chịu ràng buộc giờ lái xe tải từ 2024
 meta:
   product: Product B — hệ thống nghiệp vụ chuỗi kho lạnh thực phẩm
-  source: Bộ thiết kế LAB-4 (specs/, nộp 2026-11-21)
+  source: Bộ thiết kế LAB-4 (specs/, nộp 2026-11-20)
   roles:
   - BE-1
   - BE-2

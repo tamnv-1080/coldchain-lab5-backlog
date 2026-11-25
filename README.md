@@ -4,7 +4,7 @@
 
 ## 1. Tổng quan
 
-- **Nguồn:** backlog break từ bộ thiết kế LAB-4 nộp ngày 2026-11-21. Bộ spec LAB-4 không nộp lại.
+- **Nguồn:** backlog break từ bộ thiết kế LAB-4 nộp ngày 2026-11-20. Bộ spec LAB-4 không nộp lại.
 - **PREMISE.md: có thay đổi.**
   - 9 dòng thêm/sửa spec (S1–S9).
   - 9 giả định bổ sung (A1–A9).
@@ -22,7 +22,7 @@
 | Project, lọc Sprint 1 | https://github.com/users/tamnv-1080/projects/2?filterQuery=iteration%3A%22Sprint+1%22 |
 | Báo cáo HTML của skill chấm SWP | [`reports/estimate-swp-coldchain-lab5-backlog-20261123-070414.html`](reports/estimate-swp-coldchain-lab5-backlog-20261123-070414.html). Tải về rồi mở bằng trình duyệt; không cần mạng |
 
-Đã mở thử cả 4 link bằng cửa sổ ẩn danh (không đăng nhập GitHub): _(chờ xác nhận)_
+Đã mở thử bằng cửa sổ ẩn danh, không đăng nhập GitHub (2026-11-25): repo, Project và Project lọc Sprint 1 đều xem được. Link báo cáo HTML kiểm bằng truy cập không đăng nhập (HTTP 200).
 
 Field trên Project:
 - Status

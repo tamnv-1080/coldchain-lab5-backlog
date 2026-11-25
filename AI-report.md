@@ -41,7 +41,7 @@ Mô hình làm việc giống LAB-4: **1 AI chính điều phối + agent cho vi
 | **Máy** | Validator backlog; đếm độ phủ (mọi API ghi, DIV, RPC đều có issue); đọc lại Project sau mỗi lần ghi (issue = item, blocked-by, cha–con, SWP, giờ, trạng thái sprint); assert "tách issue giữ tổng SWP" trong script |
 | **Reviewer độc lập** | 2 lần: backlog trước khi publish (~6 phút, ~180k token) và báo cáo tiến độ trước khi đưa người kiểm (~4 phút, ~90k token). Reviewer chỉ đọc, không biết kết luận của AI chính |
 | **AI chính tự kiểm** | Mỗi phát hiện của reviewer được kiểm lại bằng spec/số liệu trước khi sửa, không sửa theo phản xạ |
-| **Người** | Cổng 1: duyệt backlog + yêu cầu review độc lập trước khi publish. Cổng 2: duyệt 5 mẫu SWP (2 mẫu đầu qua 2 vòng: chọn mức khó → chọn điểm; 3 mẫu còn lại chấp nhận chung một lượt), quyết tách mục quá trần, quyết hệ số giờ theo lớp. Cổng 3: kiểm báo cáo tiến độ, **đang chờ người kiểm bản đã sửa** |
+| **Người** | Cổng 1: duyệt backlog + yêu cầu review độc lập trước khi publish. Cổng 2: duyệt 5 mẫu SWP (2 mẫu đầu qua 2 vòng: chọn mức khó → chọn điểm; 3 mẫu còn lại chấp nhận chung một lượt), quyết tách mục quá trần, quyết hệ số giờ theo lớp. Cổng 3: người kiểm báo cáo tiến độ bản đã sửa sau review (M1 trượt, M3 thành khoảng, 90 giờ không có việc) và đồng ý dùng làm báo cáo gửi khách |
 
 ### 2.2 Vấn đề phát hiện và cách xử lý
 

@@ -1,6 +1,6 @@
 # PREMISE — Backlog LAB-5 khác bộ thiết kế LAB-4 ở đâu
 
-Backlog break từ bộ thiết kế LAB-4 (nộp 2026-11-21). Không sửa lại bộ spec LAB-4. Những gì đổi, thêm hoặc chốt trong lúc break được ghi ở đây, và issue liên quan trỏ về mã dòng (S1, A2, H1…). Mã spec trong bảng là mã tài liệu LAB-4 (ví dụ `DRIVING_TIME_CHECK_TECH §4.5`, `DIV-14`, `PREMISE D04` là PREMISE của LAB-4).
+Backlog break từ bộ thiết kế LAB-4 (nộp 2026-11-20). Không sửa lại bộ spec LAB-4. Những gì đổi, thêm hoặc chốt trong lúc break được ghi ở đây, và issue liên quan trỏ về mã dòng (S1, A2, H1…). Mã spec trong bảng là mã tài liệu LAB-4 (ví dụ `DRIVING_TIME_CHECK_TECH §4.5`, `DIV-14`, `PREMISE D04` là PREMISE của LAB-4).
 
 ## 1. Spec thêm / bỏ / sửa so với LAB-4
 
